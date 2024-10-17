@@ -1,0 +1,38 @@
+[
+    {
+      "id": 1,
+      "title": "Conferencia de Tecnología",
+      "date": "Sept. 12, 2024",
+      "description": "Explora las últimas tendencias en tecnología y desarrollo de software con expertos de la industrra y líderes de opinión en el sector de la tecnología.",  
+      "image": "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/APP_ACHO_EVENTO-GENETRICO.png?updatedAt=1726754092912"
+    },
+    {
+      "id": 2,
+      "title": "Feria de Innovación",
+      "date": "Oct. 14, 2024",
+      "description": "Un evento que reúne a los mejores innovadores y startups del mundo.",
+      "image": "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/APP_ACHO_EVENTO-GENETRICO.png?updatedAt=1726754092912"
+    },
+    {
+      "id": 3,
+      "title": "Festival de Cine",
+      "date": "Nov. 20, 2024",
+      "description": "Celebración de los mejores directores y cineastas del año.",
+      "image": "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/APP_ACHO_EVENTO-GENETRICO.png?updatedAt=1726754092912"
+    },
+    {
+      "id": 4,
+      "title": "Conferencia de Marketing Digital",
+      "date": "Dec. 5, 2024",
+      "description": "Aprende sobre las últimas tendencias en marketing digital y redes sociales.",
+      "image": "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/APP_ACHO_EVENTO-GENETRICO.png?updatedAt=1726754092912"
+    },
+    {
+      "id": 5,
+      "title": "Expo Salud y Bienestar",
+      "date": "Jan. 10, 2025",
+      "description": "Descubre los últimos avances en salud, nutrición y bienestar personal.",
+      "image": "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/APP_ACHO_EVENTO-GENETRICO.png?updatedAt=1726754092912"
+    }
+  ]
+  

@@ -1,0 +1,23 @@
+{
+  "_id": "encuesta_1",
+  "title": "Encuesta de Satisfacción",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "radio",
+      "title": "¿Qué tan satisfecho estás con nuestro servicio?",
+      "options": ["Muy satisfecho", "Satisfecho", "Neutral", "Insatisfecho"]
+    },
+    {
+      "id": "q2",
+      "type": "text",
+      "title": "¿Qué podríamos mejorar?"
+    },
+    {
+      "id": "q3",
+      "type": "checkbox",
+      "title": "¿Qué servicios utilizaste?",
+      "options": ["Corte de cabello", "Coloración", "Manicure", "Pedicure"]
+    }
+  ]
+}
