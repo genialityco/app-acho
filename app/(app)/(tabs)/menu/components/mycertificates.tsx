@@ -1,183 +1,218 @@
-import React, { useState } from "react";
-import { ScrollView, StyleSheet, View, Modal, Pressable } from "react-native";
-import { Card, Text, Button } from "react-native-paper";
-import { Image } from "react-native";
-
-import { ImageSourcePropType } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  Linking,
+  TouchableOpacity,
+} from "react-native";
+import { Card, Text, Button, ActivityIndicator } from "react-native-paper";
+import { WebView } from "react-native-webview";
+import { useAuth } from "@/context/AuthContext"; // Contexto de autenticación
+import { searchAttendees } from "@/services/api/attendeeService";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 interface Certificate {
   id: number;
   title: string;
   date: string;
-  image: ImageSourcePropType; // URL de la imagen o archivo del certificado
+  eventId: string;
 }
 
 export default function MyCertificatesScreen() {
+  const { userId } = useAuth();
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCertificate, setSelectedCertificate] =
     useState<Certificate | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Simulación de los certificados que tiene el usuario
-  const certificates: Certificate[] = [
-    {
-      id: 1,
-      title: "Certificado de Participación en Taller de React Native",
-      date: "2023-07-15",
-      image: require("../../../../../assets/images/certificado_ejemplo.png"),
-    },
-    {
-      id: 2,
-      title: "Certificado de Finalización del Curso de Node.js",
-      date: "2023-08-20",
-      image: require("../../../../../assets/images/certificado_ejemplo.png"),
-    },
-  ];
+  useEffect(() => {
+    if (userId) {
+      loadCertificates(userId);
+    }
+  }, [userId]);
 
-  const openModal = (certificate: Certificate) => {
-    setSelectedCertificate(certificate);
-    setModalVisible(true);
+  // Función para cargar los certificados del usuario
+  const loadCertificates = async (userId: string) => {
+    try {
+      setLoading(true);
+      const filters = { userId, attended: true };
+      const attendees = await searchAttendees(filters);
+
+      if (attendees?.data?.items?.length > 0) {
+        const userCertificates = attendees.data.items.map(
+          (attendee: any, index: number) => ({
+            id: index + 1,
+            title: `Certificado del Evento: ${attendee.eventId.name}`,
+            date: new Date(attendee.createdAt).toLocaleDateString(),
+            eventId: attendee.eventId,
+          })
+        );
+        setCertificates(userCertificates);
+      }
+    } catch (error) {
+      console.error("Error al cargar los certificados:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const closeModal = () => {
-    setModalVisible(false);
+  const handleViewOrDownload = (certificate: Certificate) => {
+    const certificateUrl = `https://gen-certificados.netlify.app/certificate/${certificate.eventId}/${userId}`;
+    Linking.openURL(certificateUrl);
+  };
+
+  const goBackToList = () => {
     setSelectedCertificate(null);
   };
 
-  const downloadCertificate = (certificate: Certificate) => {};
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00AEEF" />
+      </View>
+    );
+  }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      <View>
-        {certificates.map((certificate: Certificate) => (
-          <Card key={certificate.id} style={styles.certificateCard}>
-            <View style={styles.row}>
-              {/* Columna para la imagen */}
-              <View style={styles.contentColumnOne}>
-                <Image
-                  source={certificate.image}
-                  style={styles.certificateImage}
-                />
-              </View>
-
-              {/* Columna para el contenido */}
-              <View style={styles.contentColumnTwo}>
-                <Text style={styles.certificateDate}>{certificate.date}</Text>
-                <Text style={styles.certificateTitle}>{certificate.title}</Text>
-                <View style={styles.buttonContainer}>
-                  <Button
-                    mode="contained"
-                    onPress={() => openModal(certificate)}
-                  >
-                    Ver
-                  </Button>
-                  <Button
-                    mode="contained"
-                    onPress={() => downloadCertificate(certificate)}
-                  >
-                    Descargar
-                  </Button>
+    <View style={styles.container}>
+      {selectedCertificate ? (
+        // WebView para mostrar el certificado seleccionado
+        <View style={styles.webViewContainer}>
+          <Button
+            mode="contained-tonal"
+            onPress={goBackToList}
+            style={styles.backButton}
+          >
+            Volver a mis certificados
+          </Button>
+          <TouchableOpacity
+            style={styles.webViewTouchable}
+            onPress={() => handleViewOrDownload(selectedCertificate)}
+          >
+            <WebView
+              source={{
+                uri: `https://gen-certificados.netlify.app/certificate/${selectedCertificate.eventId}/${userId}`,
+              }}
+              startInLoadingState={true}
+              originWhitelist={["*"]}
+              style={styles.certificateWebView}
+            />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        // Mostrar lista de certificados
+        <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          {certificates.length > 0 ? (
+            certificates.map((certificate: Certificate) => (
+              <Card key={certificate.id} style={styles.certificateCard}>
+                <View style={styles.row}>
+                  {/* Columna izquierda: Icono y fecha */}
+                  <View style={styles.leftColumn}>
+                    <Icon
+                      name="description"
+                      size={40}
+                      color="#00AEEF"
+                      style={styles.certificateIcon}
+                    />
+                    <Text style={styles.certificateDate}>{certificate.date}</Text>
+                  </View>
+                  
+                  {/* Columna derecha: Título y botón */}
+                  <View style={styles.rightColumn}>
+                    <Text style={styles.certificateTitle}>
+                      {certificate.title}
+                    </Text>
+                    <Button
+                      mode="contained"
+                      onPress={() => handleViewOrDownload(certificate)}
+                      style={styles.viewButton}
+                    >
+                      Ver o descargar
+                    </Button>
+                  </View>
                 </View>
-              </View>
-            </View>
-          </Card>
-        ))}
-      </View>
-
-      {/* Modal para visualizar el certificado */}
-      {selectedCertificate && (
-        <Modal
-          visible={modalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={closeModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Pressable onPress={closeModal} style={styles.closeButton}>
-                <Text style={styles.closeText}>Cerrar</Text>
-              </Pressable>
-              <Image
-                source={selectedCertificate.image}
-                style={styles.modalImage}
-              />
-            </View>
-          </View>
-        </Modal>
+              </Card>
+            ))
+          ) : (
+            <Text style={styles.noCertificatesText}>
+              No hay certificados disponibles.
+            </Text>
+          )}
+        </ScrollView>
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   scrollViewContent: {
     padding: 16,
   },
   certificateCard: {
     marginBottom: 16,
     borderRadius: 8,
-    backgroundColor: "#fff",
-    elevation: 4, // sombra en Android
-    shadowOpacity: 0.3, // sombra en iOS
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    padding: 16,
+    backgroundColor: "#f9f9f9",
+    elevation: 2,
+    padding: 12,
   },
   row: {
     flexDirection: "row",
-  },
-  certificateImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    marginRight: 10,
-  },
-  contentColumnOne: {
-    flexDirection: "column",
     justifyContent: "space-between",
+    alignItems: "center",
   },
-  contentColumnTwo: {
-    flex: 1,
+  leftColumn: {
     flexDirection: "column",
-    justifyContent: "space-between",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "30%",
+  },
+  rightColumn: {
+    flexDirection: "column",
+    justifyContent: "center",
+    width: "65%",
+  },
+  certificateIcon: {
+    marginBottom: 8,
   },
   certificateDate: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#00AEEF",
+    fontSize: 14,
+    color: "#6b6b6b",
+    textAlign: "center",
   },
   certificateTitle: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 4,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
   },
-  buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
+  viewButton: {
+    marginTop: 4,
   },
-  modalOverlay: {
+  webViewContainer: {
+    flex: 1,
+  },
+  backButton: {
+    margin: 16,
+    alignSelf: "center",
+  },
+  webViewTouchable: {
+    flex: 1,
+  },
+  certificateWebView: {
+    flex: 1,
+  },
+  loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)", // Fondo semitransparente
   },
-  modalContent: {
-    width: "90%",
-    backgroundColor: "#fff",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  modalImage: {
-    width: 300,
-    height: 300,
-    resizeMode: "contain",
-  },
-  closeButton: {
-    alignSelf: "flex-end",
-  },
-  closeText: {
+  noCertificatesText: {
     fontSize: 16,
-    color: "#007AFF",
+    textAlign: "center",
+    marginTop: 20,
   },
 });

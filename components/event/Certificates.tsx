@@ -1,86 +1,87 @@
-import React from "react";
-import { View, Image, StyleSheet, TouchableOpacity, Alert } from "react-native";
-import { Text, Card } from "react-native-paper";
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
+import { searchAttendees } from "@/services/api/attendeeService";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Linking,
+  TouchableOpacity,
+} from "react-native";
+import { ActivityIndicator, Text } from "react-native-paper";
 import WebView from "react-native-webview";
 
-export default function Certificates() {
-  // Simulación de URL de descarga de un certificado
-  // const downloadUri = "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/certificado_ejemplo-1.pdf?alt=media&token=1aa2097a-d152-469c-b3cd-66dc386138d1";
+interface CertificatesProps {
+  eventId: string;
+  userId: string;
+}
 
-  // const handleDownload = async () => {
-  //   try {
-  //     // Definir la ruta para guardar el archivo en el sistema local
-  //     const fileUri = FileSystem.documentDirectory + "certificado.pdf";
+export default function Certificates({ eventId, userId }: CertificatesProps) {
+  // URL dinámica del certificado
+  const url = `https://gen-certificados.netlify.app/certificate/${eventId}/${userId}`;
+  const [certificate, setCertificate] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  //     // Descargar el archivo
-  //     const { uri } = await FileSystem.downloadAsync(downloadUri, fileUri);
+  const fetchUserCertificate = async () => {
+    try {
+      setLoading(true);
+      const filters = { userId, eventId, attended: true };
+      const response = await searchAttendees(filters);
+      if (response?.data?.items?.length > 0) {
+        setCertificate(response.data.items[0]);
+      }
+    } catch (error) {
+      console.error("Error al cargar el certificado:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  //     // Preguntar al usuario si desea abrir el archivo
-  //     Alert.alert(
-  //       "Descarga completada",
-  //       "¿Quieres abrir el archivo?",
-  //       [
-  //         {
-  //           text: "Cerrar",
-  //           onPress: () => console.log("Archivo cerrado"),
-  //           style: "cancel",
-  //         },
-  //         {
-  //           text: "Abrir",
-  //           onPress: () => handleOpenFile(uri),
-  //         },
-  //       ],
-  //       { cancelable: false }
-  //     );
-  //   } catch (error) {
-  //     console.error("Error al descargar el archivo:", error);
-  //     Alert.alert("Error", "No se pudo descargar el archivo");
-  //   }
-  // };
+  useEffect(() => {
+    fetchUserCertificate();
+  }, [eventId, userId]);
 
-  // const handleOpenFile = async (fileUri: string) => {
-  //   try {
-  //     // Verificar si la funcionalidad de compartir está disponible
-  //     if (!(await Sharing.isAvailableAsync())) {
-  //       Alert.alert("Error", "El dispositivo no soporta compartir este archivo");
-  //       return;
-  //     }
+  // Función para abrir la URL en el navegador externo
+  const openInBrowser = async () => {
+    const supported = await Linking.canOpenURL(url);
 
-  //     // Compartir o abrir el archivo descargado con la aplicación adecuada
-  //     await Sharing.shareAsync(fileUri);
-  //   } catch (error) {
-  //     console.error("Error al abrir el archivo:", error);
-  //     Alert.alert("Error", "No se pudo abrir el archivo");
-  //   }
-  // };
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      Alert.alert("Error", "No se puede abrir la URL en el navegador");
+    }
+  };
 
-  const url =
-    "https://gen-certificados.netlify.app/certificate/66df7014fa60af41a1bea05b/6707e563aac44fe74fc12ce4";
+  if (loading) {
+    return (
+      <View style={styles.containerNotCertificates}>
+        <ActivityIndicator size="large" />
+        <Text>Cargando información</Text>
+      </View>
+    );
+  }
 
   return (
-    // <View style={styles.container}>
-    //   {/* Imagen del Certificado */}
-    //   <Card>
-    //     <Image
-    //       source={require("../../assets/images/certificado_ejemplo.png")}
-    //       style={styles.image}
-    //     />
-    //   </Card>
-
-    //   {/* Botón de Descargar */}
-    //   <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
-    //     <Text style={styles.downloadText}>Descargar</Text>
-    //   </TouchableOpacity>
-    // </View>
-
     <View style={styles.container}>
-      <WebView
-        source={{ uri: url }}
-        style={styles.webview}
-        startInLoadingState={true}
-      />
+      {/* WebView envuelta en TouchableOpacity para manejar el clic */}
+      {certificate && (
+        <TouchableOpacity
+          style={styles.webviewContainer}
+          onPress={openInBrowser}
+        >
+          <WebView
+            source={{ uri: url }}
+            style={styles.webview}
+            startInLoadingState={true}
+            originWhitelist={["*"]}
+            scrollEnabled={false}
+          />
+        </TouchableOpacity>
+      )}
+      {!certificate && (
+        <View style={styles.containerNotCertificates}>
+          <Text>No tiene certificados disponibles</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -88,29 +89,17 @@ export default function Certificates() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // padding: 16,
     backgroundColor: "#f5f5f5",
   },
-  image: {
-    width: "100%",
-    height: 200,
-    resizeMode: "contain",
-    borderRadius: 10,
-  },
-  downloadButton: {
-    backgroundColor: "#A1D68B",
-    paddingVertical: 15,
-    borderRadius: 10,
+  containerNotCertificates: {
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 16,
   },
-  downloadText: {
-    color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
+  webviewContainer: {
+    flex: 1,
   },
   webview: {
-    height: "100%",
-    width: "100%",
+    flex: 1,
   },
 });

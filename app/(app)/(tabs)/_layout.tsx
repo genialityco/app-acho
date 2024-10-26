@@ -1,14 +1,16 @@
-import { Tabs } from "expo-router";
 import React from "react";
+import { Tabs } from "expo-router";
 import { useWindowDimensions } from "react-native";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import theme from "@/theme";
+import { useNotifications } from "@/context/NotificationsContext";
 
 export default function TabLayout() {
   const { width } = useWindowDimensions();
+  const { unreadCount } = useNotifications();
 
   // Ajuste responsivo para el estilo de las tabs
-  const isLargeScreen = width > 768; // Punto de quiebre para pantallas grandes
+  const isLargeScreen = width > 768;
 
   return (
     <Tabs
@@ -39,6 +41,8 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          // Mostrar el badge solo si hay notificaciones no leídas
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
         }}
       />
       <Tabs.Screen

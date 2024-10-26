@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert } from "react-native";
+import {
+  ScrollView,
+  View,
+  StyleSheet,
+  Alert,
+  Modal,
+  TouchableOpacity,
+  Platform,
+} from "react-native";
 import { Text, Button, ActivityIndicator, Chip } from "react-native-paper";
 import * as FileSystem from "expo-file-system";
+import * as IntentLauncher from "expo-intent-launcher";
 import * as Sharing from "expo-sharing";
 import { WebView } from "react-native-webview";
 import { useLocalSearchParams } from "expo-router";
@@ -13,17 +22,17 @@ import {
 import { useAuth } from "@/context/AuthContext";
 
 export default function PosterDetail() {
-  const { posterId } = useLocalSearchParams();
+  const { posterId, hasAlreadyVoted, isMemberActive } = useLocalSearchParams();
   const posterIdString = Array.isArray(posterId) ? posterId[0] : posterId;
   const [poster, setPoster] = useState<Poster | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isVoteLoading, setIsVoteLoading] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   const { userId } = useAuth();
 
-  // Función para obtener el póster desde la API
   const fetchPoster = async () => {
     try {
       const response = await fetchPosterById(posterIdString);
@@ -41,12 +50,10 @@ export default function PosterDetail() {
     }
   };
 
-  // Efecto para cargar los datos del póster al montar el componente
   useEffect(() => {
     fetchPoster();
   }, [posterId]);
 
-  // Función para votar por el póster
   const handleVote = async () => {
     setIsVoteLoading(true);
     if (userId === null) {
@@ -55,32 +62,14 @@ export default function PosterDetail() {
     }
 
     try {
-      const response = await voteForPoster(posterIdString, userId);
+      await voteForPoster(posterIdString, userId);
       Alert.alert(
         "Voto registrado",
         `Has votado por el póster ${poster?.title}`
       );
-
-      // Actualizar el estado para reflejar que el usuario ha votado
       setHasVoted(true);
     } catch (error) {
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        typeof (error as any).response === "object" &&
-        "data" in (error as any).response &&
-        typeof (error as any).response.data === "object" &&
-        "message" in (error as any).response.data &&
-        "You have already voted for this poster"
-      ) {
-        Alert.alert("Error", "Ya has votado por este póster.");
-      } else {
-        Alert.alert(
-          "Error",
-          "No se pudo registrar tu voto. Inténtalo de nuevo."
-        );
-      }
+      Alert.alert("Error", "No se pudo registrar tu voto. Inténtalo de nuevo.");
     } finally {
       setIsVoteLoading(false);
     }
@@ -94,17 +83,18 @@ export default function PosterDetail() {
 
       // Descargar el PDF
       const { uri } = await FileSystem.downloadAsync(downloadUri!, fileUri);
-      Alert.alert("Descarga completa", `El archivo se guardó en: ${uri}`);
+      Alert.alert("Descarga completa", `El archivo se guardó en: ${fileUri}`);
 
-      // Compartir el archivo descargado
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      } else {
-        Alert.alert(
-          "No se puede compartir",
-          "La función de compartir no está disponible."
-        );
-      }
+      // Preguntar si desea abrir el PDF
+      Alert.alert(
+        "Abrir PDF",
+        "¿Deseas abrir el documento descargado?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Abrir", onPress: () => openPDF(uri) },
+        ],
+        { cancelable: true }
+      );
     } catch (error) {
       console.error("Error al descargar el archivo", error);
       Alert.alert("Error", "No se pudo descargar el archivo");
@@ -113,7 +103,34 @@ export default function PosterDetail() {
     }
   };
 
-  // Si el póster está cargando, mostrar el indicador de carga
+  // Abrir PDF con una aplicación externa en Android
+  const openPDF = async (uri) => {
+    if (Platform.OS === "android") {
+      try {
+        const contentUri = await FileSystem.getContentUriAsync(uri);
+        IntentLauncher.startActivityAsync("android.intent.action.VIEW", {
+          data: contentUri,
+          flags: 1, // FLAG_ACTIVITY_NEW_TASK
+          type: "application/pdf",
+        });
+      } catch (error) {
+        console.error("Error al abrir el PDF en Android:", error);
+        Alert.alert(
+          "Error",
+          "No se pudo abrir el PDF en una aplicación externa."
+        );
+      }
+    } else {
+      // En iOS, compartir el archivo descargado
+      try {
+        await Sharing.shareAsync(uri);
+      } catch (error) {
+        console.error("Error al compartir el PDF en iOS:", error);
+        Alert.alert("Error", "No se pudo abrir el PDF en iOS.");
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -123,7 +140,6 @@ export default function PosterDetail() {
     );
   }
 
-  // Si no se pudo obtener el póster, muestra un mensaje de error
   if (!poster) {
     return (
       <View style={styles.loadingContainer}>
@@ -133,48 +149,89 @@ export default function PosterDetail() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.posterDetails}>
-        {`${poster.category} / ${poster.topic} / ${poster.institution}`}
-      </Text>
-      <Text style={styles.header}>{poster.title}</Text>
-      <Text style={styles.authors}>Autor(es): {poster.authors.join(", ")}</Text>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <Text
+          style={styles.posterDetails}
+        >{`${poster.category} / ${poster.topic}`}</Text>
+        <Text style={styles.header}>{poster.title}</Text>
+        <Text style={styles.authors}>
+          Autor(es): {poster.authors.join(", ")}
+        </Text>
 
-      {/* Vista para visualizar el PDF usando WebView */}
-      <View style={styles.pdfContainer}>
-        <WebView
-          source={{ uri: poster.urlPdf }}
-          style={styles.pdf}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <ActivityIndicator
-              animating={true}
-              size="large"
-              style={styles.loader}
+        {/* Botones para votar y descargar */}
+        <View style={styles.buttonContainer}>
+          {hasVoted ? (
+            <Chip icon="information" style={styles.votedChip}>
+              Has votado por este póster
+            </Chip>
+          ) : (
+            <Button
+              mode="contained"
+              onPress={handleVote}
+              loading={isVoteLoading}
+              disabled={
+                isVoteLoading ||
+                hasVoted ||
+                hasAlreadyVoted === "true" ||
+                isMemberActive === "false"
+              }
+              style={styles.voteButton}
+            >
+              Votar por este póster
+            </Button>
+          )}
+          <Button
+            mode="contained-tonal"
+            compact
+            onPress={() => setIsFullScreen(true)}
+          >
+            Ver en pantalla completa
+          </Button>
+        </View>
+
+        {/* Vista para visualizar el PDF usando WebView */}
+        <View style={styles.pdfContainer}>
+          {Platform.OS === "android" && (
+            <WebView
+              source={{
+                uri: `https://genpdfviewer.netlify.app/?file=${poster.urlPdf}`,
+              }}
+              nestedScrollEnabled={true}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <ActivityIndicator
+                  animating={true}
+                  size="large"
+                  style={styles.loader}
+                />
+              )}
+              onError={(error) => {
+                console.log(error);
+                Alert.alert("Error", "No se pudo cargar el PDF");
+              }}
             />
           )}
-          onError={(error) => {
-            console.log(error);
-            Alert.alert("Error", "No se pudo cargar el PDF");
-          }}
-        />
-      </View>
+          {Platform.OS === "ios" && (
+            <WebView
+              source={{ uri: poster.urlPdf }}
+              style={styles.pdf}
+              startInLoadingState={true}
+              renderLoading={() => (
+                <ActivityIndicator
+                  animating={true}
+                  size="large"
+                  style={styles.loader}
+                />
+              )}
+              onError={(error) => {
+                console.log(error);
+                Alert.alert("Error", "No se pudo cargar el PDF");
+              }}
+            />
+          )}
+        </View>
 
-      {/* Botones para votar y guardar */}
-      <View style={styles.buttonContainer}>
-        {hasVoted ? (
-          <Chip icon="information">Has votado por este póster</Chip>
-        ) : (
-          <Button
-            mode="contained"
-            onPress={handleVote}
-            loading={isVoteLoading}
-            disabled={isVoteLoading}
-            style={styles.voteButton}
-          >
-            Votar
-          </Button>
-        )}
         <Button
           mode="contained-tonal"
           onPress={handleDownload}
@@ -184,18 +241,64 @@ export default function PosterDetail() {
         >
           Guardar
         </Button>
+
+        {/* Modal para ver el PDF en pantalla completa */}
+        <Modal visible={isFullScreen} animationType="slide" transparent>
+          <View style={styles.fullScreenContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setIsFullScreen(false)}
+            >
+              <Text style={styles.closeButtonText}>Cerrar</Text>
+            </TouchableOpacity>
+            {Platform.OS === "android" && (
+              <WebView
+                source={{
+                  uri: `https://genpdfviewer.netlify.app/?file=${poster.urlPdf}`,
+                }}
+                nestedScrollEnabled={true}
+                style={styles.fullScreenPdf}
+                startInLoadingState={true}
+                renderLoading={() => (
+                  <ActivityIndicator
+                    animating={true}
+                    size="large"
+                    style={styles.loader}
+                  />
+                )}
+              />
+            )}
+            {Platform.OS === "ios" && (
+              <WebView
+                source={{ uri: poster.urlPdf }}
+                style={styles.fullScreenPdf}
+                startInLoadingState={true}
+                renderLoading={() => (
+                  <ActivityIndicator
+                    animating={true}
+                    size="large"
+                    style={styles.loader}
+                  />
+                )}
+              />
+            )}
+          </View>
+        </Modal>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     padding: 20,
   },
   header: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "bold",
     marginBottom: 5,
   },
@@ -204,22 +307,48 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   pdfContainer: {
-    flex: 1,
-    borderRadius: 10,
-    overflow: "hidden",
+    height: 400,
   },
   pdf: {
     flex: 1,
-    width: "100%",
-    height: "100%",
+  },
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  fullScreenPdf: {
+    flex: 1,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    zIndex: 1,
+    padding: 10,
+    backgroundColor: "#fff",
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "#000",
+    fontWeight: "bold",
   },
   loader: {
     marginTop: 20,
   },
+  noteText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#ff4444",
+    textAlign: "center",
+    fontWeight: "bold",
+    padding: 10,
+    backgroundColor: "#ffe0e0",
+    borderRadius: 5,
+  },
   buttonContainer: {
-    flexDirection: "row",
+    flexDirection: "column",
     justifyContent: "space-between",
-    marginTop: 20,
+    marginVertical: 10,
     gap: 10,
   },
   voteButton: {
@@ -227,6 +356,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+    marginTop: 10,
   },
   loadingContainer: {
     flex: 1,
@@ -238,10 +368,7 @@ const styles = StyleSheet.create({
     color: "#777",
     marginBottom: 5,
   },
-  votedText: {
-    fontSize: 16,
-    fontStyle: "italic",
+  votedChip: {
     flex: 1,
-    textAlign: "center",
   },
 });

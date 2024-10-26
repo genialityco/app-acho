@@ -92,6 +92,16 @@ export default function MyEventsScreen() {
     );
   }
 
+  if (events.length === 0) {
+    return (
+      <View style={styles.noEventsContainer}>
+        <Text style={styles.noEventsText}>
+          No estás inscrito en ningún evento actualmente.
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollViewContent}>
       <View>
@@ -152,6 +162,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  noEventsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noEventsText: {
+    fontSize: 18,
+    color: "#888",
+    textAlign: "center",
+    padding: 20,
   },
   eventCard: {
     marginBottom: 16,

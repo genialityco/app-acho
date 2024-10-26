@@ -3,6 +3,7 @@ import api from './api';
 interface User {
   _id: string;
   firebaseUid: string;
+  expoPushToken: string | null;
 }
 
 // Obtener todos los usuarios (users)
@@ -68,5 +69,18 @@ export const searchUsers = async (filters: any) => {
   } catch (error) {
     console.error('Error searching users with filters:', error);
     throw error;
+  }
+};
+
+// Actualizar o guardar expoPushToken
+export const updateExpoPushToken = async (userId: any, expoPushToken: any) => {
+  try {
+    await api.post('/users/updatePushToken', {
+      userId,
+      expoPushToken,
+    });
+    console.log('Expo push token actualizado exitosamente');
+  } catch (error) {
+    console.error('Error al actualizar el expo push token:', error);
   }
 };

@@ -181,11 +181,20 @@ export default function Program() {
                   speaker: { imageUrl: any },
                   idx: React.Key | null | undefined
                 ) => (
-                  <Image
+                  <TouchableOpacity
                     key={idx}
-                    source={{ uri: speaker.imageUrl }}
-                    style={styles.speakerImage}
-                  />
+                    onPress={() =>
+                      router.push(
+                        `/${tab}/components/speakerdetail?speakerId=${speaker._id}&eventId=${eventId}`
+                      )
+                    }
+                  >
+                    <Image
+                      key={idx}
+                      source={{ uri: speaker.imageUrl }}
+                      style={styles.speakerImage}
+                    />
+                  </TouchableOpacity>
                 )
               )}
             </View>
@@ -245,19 +254,25 @@ export default function Program() {
         {/* Picker de Salones */}
         <TouchableOpacity
           style={styles.pickerButton}
-          onPress={() => setShowRoomPicker(true)}
+          onPress={() => {
+            setShowRoomPicker(true);
+            setShowModulePicker(false); // Asegúrate de cerrar el otro Picker
+          }}
         >
           <Text>{filterRoom || "Salones"}</Text>
         </TouchableOpacity>
 
         {/* Picker de Módulos */}
+
         <TouchableOpacity
           style={styles.pickerButton}
-          onPress={() => setShowModulePicker(true)}
+          onPress={() => {
+            setShowModulePicker(true);
+            setShowRoomPicker(false); // Asegúrate de cerrar el otro Picker
+          }}
         >
           <Text>{filterModule || "Módulos"}</Text>
         </TouchableOpacity>
-
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
@@ -321,27 +336,37 @@ export default function Program() {
       {/* Pickers para Android - Se muestran en línea */}
       {Platform.OS === "android" && (
         <View style={styles.androidPickerContainer}>
-          <Picker
-            selectedValue={filterRoom}
-            onValueChange={(value) => setFilterRoom(value)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Salones" value="" />
-            {rooms.map((room, index) => (
-              <Picker.Item key={index} label={room} value={room} />
-            ))}
-          </Picker>
+          {showRoomPicker && (
+            <Picker
+              selectedValue={filterRoom}
+              onValueChange={(value) => {
+                setFilterRoom(value);
+                setShowRoomPicker(false);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Salones" value="" />
+              {rooms.map((room, index) => (
+                <Picker.Item key={index} label={room} value={room} />
+              ))}
+            </Picker>
+          )}
 
-          <Picker
-            selectedValue={filterModule}
-            onValueChange={(value) => setFilterModule(value)}
-            style={styles.picker}
-          >
-            <Picker.Item label="Módulos" value="" />
-            {modules.map((module, index) => (
-              <Picker.Item key={index} label={module} value={module} />
-            ))}
-          </Picker>
+          {showModulePicker && (
+            <Picker
+              selectedValue={filterModule}
+              onValueChange={(value) => {
+                setFilterModule(value);
+                setShowModulePicker(false); // Oculta el Picker una vez seleccionado
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Módulos" value="" />
+              {modules.map((module, index) => (
+                <Picker.Item key={index} label={module} value={module} />
+              ))}
+            </Picker>
+          )}
         </View>
       )}
 
@@ -406,6 +431,9 @@ const styles = StyleSheet.create({
   },
   textChip: {
     fontSize: 12,
+  },
+  linkText: {
+    color: "#00796b",
   },
   dayTab: {
     padding: 8,

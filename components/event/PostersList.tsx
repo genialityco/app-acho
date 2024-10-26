@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { View, TextInput, ScrollView, StyleSheet } from "react-native";
+import {
+  View,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { Text, IconButton, ActivityIndicator } from "react-native-paper";
 import { searchPosters, Poster } from "@/services/api/posterService";
 import { router, useLocalSearchParams } from "expo-router";
 import debounce from "lodash.debounce";
+import { useAuth } from "@/context/AuthContext";
 
 export default function PostersList() {
-  const { tab, eventId } = useLocalSearchParams();
+  const { tab, eventId, isMemberActive } = useLocalSearchParams();
   const [posters, setPosters] = useState<Poster[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
@@ -16,11 +23,15 @@ export default function PostersList() {
 
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
 
+  const { userId } = useAuth();
+  const [hasAlreadyVoted, setHasAlreadyVoted] = useState<boolean>(false);
+  const [votedPoster, setVotedPoster] = useState<Poster | null>(null);
+
   // Debounce para controlar la frecuencia de búsqueda
   useEffect(() => {
     const handler = debounce(() => {
       setDebouncedSearchTerm(searchTerm);
-    }, 500); // Espera 500 ms antes de hacer la búsqueda
+    }, 500);
     handler();
     return () => {
       handler.cancel();
@@ -41,7 +52,26 @@ export default function PostersList() {
       const response = await searchPosters(filters);
 
       if (response.status === "success") {
-        setPosters(response.data.items);
+        const postersData = response.data.items;
+
+        // Verificar si el usuario ya ha votado por algún póster
+        const userVotedPoster = postersData.find((poster) =>
+          poster.voters.includes(userId)
+        );
+
+        if (userVotedPoster) {
+          // Si el usuario ya votó, colocamos ese póster al inicio
+          setVotedPoster(userVotedPoster);
+          setHasAlreadyVoted(true);
+          const filteredPosters = postersData.filter(
+            (poster) => poster._id !== userVotedPoster._id
+          );
+          setPosters([userVotedPoster, ...filteredPosters]);
+        } else {
+          // Si no ha votado, mostramos la lista de pósters normal
+          setPosters(postersData);
+        }
+
         setTotalPages(response.data.totalPages);
       } else {
         setPosters([]);
@@ -53,47 +83,75 @@ export default function PostersList() {
     }
   };
 
-  // Se ejecuta cuando cambian debouncedSearchTerm, eventId o page
   useEffect(() => {
     fetchFilteredPosters();
   }, [debouncedSearchTerm, eventId, page]);
 
-  // Resetea la paginación cuando cambia el término de búsqueda
   const handleSearchChange = (text: string) => {
     setSearchTerm(text);
     setPage(1);
   };
 
   const renderPoster = (poster: Poster) => (
-    <View key={poster._id} style={styles.posterCard}>
-      <View style={styles.posterInfo}>
-        <Text style={styles.posterTitle}>{poster.title}</Text>
-        <Text style={styles.posterDetails}>
-          {`${poster.category} / ${poster.topic} / ${poster.institution}`}
-        </Text>
-        <Text style={styles.posterAuthors}>
-          Autor(es): {poster.authors.join(", ")}
-        </Text>
+    <TouchableOpacity
+      key={poster._id}
+      onPress={() =>
+        router.push(
+          `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}`
+        )
+      }
+    >
+      <View
+        key={poster._id}
+        style={[
+          styles.posterCard,
+          votedPoster &&
+            votedPoster._id === poster._id &&
+            styles.votedPosterCard,
+        ]}
+      >
+        <View style={styles.posterInfo}>
+          <Text
+            style={[
+              styles.posterTitle,
+              votedPoster &&
+                votedPoster._id === poster._id &&
+                styles.votedPosterTitle,
+            ]}
+          >
+            {poster.title}
+          </Text>
+          <Text style={styles.posterDetails}>
+            {poster.category}
+            {poster.topic ? ` / ${poster.topic}` : ""}
+          </Text>
+          <Text style={styles.posterAuthors}>
+            Autor(es): {poster.authors.join(", ")}
+          </Text>
+          {votedPoster && votedPoster._id === poster._id && (
+            <Text style={styles.votedLabel}>Tu voto</Text>
+          )}
+        </View>
+        <IconButton
+          icon="eye"
+          iconColor="white"
+          containerColor="black"
+          size={15}
+          onPress={() =>
+            router.push(
+              `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}`
+            )
+          }
+        />
       </View>
-      <IconButton
-        icon="eye"
-        iconColor="white"
-        containerColor="black"
-        size={15}
-        onPress={() =>
-          router.push(
-            `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}`
-          )
-        }
-      />
-    </View>
+    </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
       <TextInput
         style={styles.searchBar}
-        placeholder="Buscar posters por título, autores, tema, institución"
+        placeholder="Buscar un poster..."
         placeholderTextColor="#888"
         value={searchTerm}
         onChangeText={handleSearchChange}
@@ -151,12 +209,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 8,
-    elevation: 2,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#000",
+  },
+  votedPosterCard: {
+    backgroundColor: "#d1f7c4", // Color de fondo para indicar que es el póster votado
+    borderColor: "#4caf50", // Borde verde para el póster votado
   },
   posterInfo: {
     flex: 1,
@@ -165,6 +226,15 @@ const styles = StyleSheet.create({
   },
   posterTitle: {
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  votedPosterTitle: {
+    color: "#4caf50", // Color verde para el título del póster votado
+  },
+  votedLabel: {
+    marginTop: 5,
+    fontSize: 12,
+    color: "#4caf50",
     fontWeight: "bold",
   },
   posterDetails: {

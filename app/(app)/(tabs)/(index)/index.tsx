@@ -29,6 +29,7 @@ interface Event {
     eventImage: string;
     miniatureImage: string;
   };
+  price: number;
 }
 
 export default function EventosScreen() {
@@ -43,11 +44,10 @@ export default function EventosScreen() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { organization } = useContext(OrganizationContext);
-  const { userId } = useAuth();
+  const { userId, signOut } = useAuth();
 
   // Función para obtener los eventos y las inscripciones
   const fetchEventsAndAttendees = async (page = 1) => {
-    // Evitar múltiples llamadas si ya se está cargando
     if (loading) return;
 
     setLoading(true);
@@ -67,8 +67,7 @@ export default function EventosScreen() {
       // Ordenar y filtrar eventos
       const sortedEvents = sortEventsByDate(eventResponse.data.items);
       const upcomingEvents = filterUpcomingEvents(sortedEvents);
-
-      // Obtener asistentes del usuario
+      
       const attendeeResponse = await searchAttendees({ userId });
       if (attendeeResponse.message === "No se encontraron asistentes") {
         await handleNoAttendees(upcomingEvents, eventResponse.data.totalPages);
@@ -115,6 +114,7 @@ export default function EventosScreen() {
 
     const filters = { userId, organizationId: organization._id };
     const memberData = await searchMembers(filters);
+
     setMemberId(memberData.data.items[0]._id);
     if (memberData.data.items[0]?.memberActive) {
       setIsMemberActive(true);
@@ -147,6 +147,10 @@ export default function EventosScreen() {
     setRegisteredEvents(attendeeEventIds);
     setTotalPages(totalPages);
   };
+
+  useEffect(() => {
+    fetchEventsAndAttendees();
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -181,7 +185,7 @@ export default function EventosScreen() {
     if (start.isSame(end, "day")) {
       return start.format("DD MMMM YYYY");
     } else {
-      return `${start.format("DD MMM")} - ${end.format("DD MMM")}`;
+      return `${start.format("DD MMM")} - ${end.format("DD MMM YYYY")}`;
     }
   };
 
@@ -192,9 +196,7 @@ export default function EventosScreen() {
   };
 
   const openPaymentLink = () => {
-    Linking.openURL(
-      "https://www.zonapagos.net/formulariosNV/?cod=BTK3a53qAPJK5dFzuUb9xik7e6uxA4q1uZq%2FvoWnU06A3x7eaQgQVEKn1%2FAsWG5rqAEwwJfodWn8tSAUrN8%2FVEdVymSmk%2BziUuV0IUhMCxzR7Z0R1lhlk95Cdimy%2BjgJnfLkGPAFJdlnjqWSbOXqxthf8ZSlzIxnzsRL4RfvPAa8IH46GR4i7BiPHLAWbwgut21SbNy%2FwvbjqWVpiTdfkojBeacOeBeCwwwhWmTQPDztXYZ74iARaJtARgVv4C7XGHcvAsJGMVK4QP%2FyfHr3YVsGLLGfgtYcV1KArIiU57YqyFv4Jp4Uafd2N1am%2BSVU"
-    );
+    Linking.openURL("https://zonapagos.com/t_acho");
   };
 
   const openComoSerMiembroLink = () => {
@@ -294,7 +296,9 @@ export default function EventosScreen() {
             Inscripción a evento: {selectedEvent?.name}
           </Text>
           <Text style={styles.modalText}>Valor miembros: Gratuito</Text>
-          <Text style={styles.modalText}>No miembros: $100.000</Text>
+          <Text style={styles.modalText}>
+            No miembros: $ {selectedEvent?.price?.toLocaleString("es-ES")}
+          </Text>
           <Text
             style={[styles.modalLink, { color: "blue" }]}
             onPress={openComoSerMiembroLink}

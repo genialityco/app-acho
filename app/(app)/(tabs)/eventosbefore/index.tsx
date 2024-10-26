@@ -1,11 +1,12 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { Button } from "react-native-paper"; // Mantengo solo los elementos necesarios
+import { ActivityIndicator, Button, Text } from "react-native-paper"; // Mantengo solo los elementos necesarios
 import RenderHighlights from "./RenderHighlights";
 import RenderEvents from "./RenderEvents";
 import { searchEvents } from "@/services/api/eventService";
 import { OrganizationContext } from "@/context/OrganizationContext";
 import { useFocusEffect } from "expo-router";
+import { set } from "firebase/database";
 
 export default function EventsBeforeScreen() {
   const [activeTab, setActiveTab] = useState("highlights");
@@ -16,6 +17,7 @@ export default function EventsBeforeScreen() {
   const [pastEvents, setPastEvents] = useState([]);
 
   const fetchEvents = async (page = 1) => {
+    setLoading(true);
     try {
       const filters = {
         organizationId: organization._id,
@@ -34,8 +36,11 @@ export default function EventsBeforeScreen() {
       setPastEvents(sortedEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
     }
   };
+
   useFocusEffect(
     useCallback(() => {
       fetchEvents(currentPage);
@@ -76,6 +81,16 @@ export default function EventsBeforeScreen() {
     },
   ];
 
+  if(loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator animating size="large" />
+        <Text>Cargando datos...</Text>
+      </View>
+    );
+  }
+  
+
   return (
     <View style={styles.container}>
       {/* Botones superiores para Highlights y Eventos Anteriores */}
@@ -86,7 +101,7 @@ export default function EventsBeforeScreen() {
           compact
           onPress={() => setActiveTab("highlights")}
         >
-          Highlights
+          Destacados
         </Button>
         <Button
           style={styles.button}
@@ -99,7 +114,7 @@ export default function EventsBeforeScreen() {
       </View>
 
       {/* Contenido dinámico según el tab seleccionado */}
-      <ScrollView style={styles.contentContainer}>
+      <View style={styles.contentContainer}>
         {activeTab === "highlights" ? (
           <View style={styles.gridContainer}>
             <RenderHighlights highlights={highlights} />
@@ -107,7 +122,7 @@ export default function EventsBeforeScreen() {
         ) : (
           <RenderEvents events={pastEvents} />
         )}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -134,5 +149,10 @@ const styles = StyleSheet.create({
   button: {
     borderRadius: 5,
     width: "45%",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

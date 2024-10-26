@@ -2,15 +2,16 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   StyleSheet,
   TouchableOpacity,
   Alert,
   Platform,
   Modal,
-  Button,
+  ImageBackground,
+  KeyboardAvoidingView,
 } from "react-native";
-import { ActivityIndicator } from "react-native-paper";
+import { ActivityIndicator, Button, TextInput } from "react-native-paper";
+import RNPickerSelect from "react-native-picker-select";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
@@ -21,17 +22,26 @@ import {
 import { useOrganization } from "@/context/OrganizationContext";
 import { createUser } from "@/services/api/userService";
 import { createMember } from "@/services/api/memberService";
+import Icon from "react-native-vector-icons/MaterialIcons";
 
 export default function RegisterScreen() {
   const [formData, setFormData] = useState<{ [key: string]: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: boolean }>(
+    {}
+  );
   const [organizationData, setOrganizationData] =
     useState<InterfaceOrganization>();
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // Estado para visibilidad de contraseña
 
-  const { signUp, uid, setUserId, authError } = useAuth();
+  const { signUp, authError } = useAuth();
   const { organization } = useOrganization();
+
+  useEffect(() => {
+    fetchOrganization();
+  }, []);
 
   const fetchOrganization = async () => {
     try {
@@ -44,29 +54,35 @@ export default function RegisterScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchOrganization();
-  }, []);
-
-  const handleInputChange = (name: any, value: string) => {
+  const handleInputChange = (name: string, value: string) => {
     setFormData({ ...formData, [name]: value });
+    setFieldErrors({ ...fieldErrors, [name]: false });
   };
 
   const handleRegister = async () => {
     const { propertiesDefinition } = organizationData || {};
     const { email, password } = formData;
 
-    // Verificar que todos los campos obligatorios estén completos
     const requiredFields =
       propertiesDefinition?.filter((field) => field.required) || [];
-    const isValid = requiredFields.every(
-      (field) => formData[field.fieldName] && formData[field.fieldName] !== ""
+    const missingFields = requiredFields.filter(
+      (field) => !formData[field.fieldName] || formData[field.fieldName] === ""
     );
 
-    if (!isValid) {
+    // Resaltar campos faltantes y mostrar alerta
+    if (missingFields.length > 0) {
+      const missingFieldNames = missingFields
+        .map((field) => field.label)
+        .join(", ");
+      setFieldErrors(
+        missingFields.reduce((acc, field) => {
+          acc[field.fieldName] = true;
+          return acc;
+        }, {})
+      );
       Alert.alert(
         "Error",
-        "Todos los campos obligatorios deben ser completados."
+        `Los siguientes campos son obligatorios: ${missingFieldNames}`
       );
       return;
     }
@@ -74,38 +90,13 @@ export default function RegisterScreen() {
     setIsRegistering(true);
 
     try {
-      // Llamar a signUp y esperar a que sea exitoso
-      const success = await signUp(email, password);
-      if (!success || !success.status) {
-        Alert.alert("Error", authError || "Error al registrar el usuario.");
-        setIsRegistering(false);
-        return;
+      const success = await signUp(email, password, organization._id, formData);
+
+      if (success) {
+        Alert.alert("Registro Exitoso", "Usuario registrado correctamente.", [
+          { text: "OK", onPress: () => router.push("/(app)") },
+        ]);
       }
-
-      if (!success.uid) {
-        Alert.alert("Error", "Hubo un error intenta nuevamente.");
-        setIsRegistering(false);
-        return;
-      }
-
-      // Registrar usuario en el backend
-      const response = await createUser({ firebaseUid: success.uid });
-      const userCreated = response.data;
-      setUserId(userCreated._id);
-
-      // Crear miembro con la información de la organización
-      await createMember({
-        userId: userCreated._id,
-        organizationId: organization._id,
-        properties: formData,
-      });
-
-      Alert.alert("Registro Exitoso", "Usuario registrado correctamente.", [
-        {
-          text: "OK",
-          onPress: () => router.push("/(app)"),
-        },
-      ]);
     } catch (error) {
       Alert.alert("Error", authError || "Error al registrar el usuario.");
     } finally {
@@ -116,123 +107,191 @@ export default function RegisterScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} size="large" />
-        <Text>Cargando póster...</Text>
+        <ActivityIndicator animating size="large" />
+        <Text>Cargando formulario de registro...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerText}>Crear una Cuenta</Text>
+    <ImageBackground
+      source={require("../assets/images/APP_ACHO_SLIDER_01.png")}
+      style={styles.backgroundImage}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay} />
 
-      {organizationData?.propertiesDefinition.map((field) => {
-        if (field.fieldName === "specialty" && field.type === "list") {
-          return Platform.OS === "ios" ? (
-            <View key={field.fieldName}>
-              <TouchableOpacity
-                onPress={() => setShowPicker(true)}
-                style={styles.pickerButton}
-              >
-                <Text>
-                  {formData[field.fieldName] || "Seleccione una especialidad"}
-                </Text>
-              </TouchableOpacity>
-              <Modal visible={showPicker} animationType="slide" transparent>
-                <View style={styles.modalContainer}>
-                  <View style={styles.pickerContainer}>
-                    <Picker
-                      selectedValue={formData[field.fieldName] || ""}
-                      onValueChange={(value) => {
-                        handleInputChange(field.fieldName, value);
-                        setShowPicker(false);
-                      }}
-                    >
-                      <Picker.Item
-                        label="Seleccione una especialidad"
-                        value=""
-                      />
-                      {field.options.map((option: string, index: number) => (
-                        <Picker.Item
-                          key={index}
-                          label={option}
-                          value={option}
-                        />
-                      ))}
-                    </Picker>
-                    <Button
-                      title="Cerrar"
-                      onPress={() => setShowPicker(false)}
-                    />
-                  </View>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={styles.card}>
+          <Text style={styles.headerText}>Crear una Cuenta</Text>
+
+          {organizationData?.propertiesDefinition.map((field) => {
+            const isFieldRequired = field.required;
+            const fieldError = fieldErrors[field.fieldName];
+            if (field.fieldName === "specialty" && field.type === "list") {
+              return Platform.OS === "ios" ? (
+                <View key={field.fieldName}>
+                  <TouchableOpacity
+                    onPress={() => setShowPicker(true)}
+                    style={styles.pickerButton}
+                  >
+                    <Text>
+                      {formData[field.fieldName] ||
+                        "Seleccione una especialidad"}
+                      {isFieldRequired && (
+                        <Text style={styles.asterisk}>*</Text>
+                      )}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Modal visible={showPicker} animationType="slide" transparent>
+                    <View style={styles.modalContainer}>
+                      <View style={styles.pickerContainer}>
+                        <Picker
+                          selectedValue={formData[field.fieldName] || ""}
+                          onValueChange={(value) => {
+                            handleInputChange(field.fieldName, value);
+                            setShowPicker(false);
+                          }}
+                        >
+                          <Picker.Item
+                            label="Seleccione una especialidad"
+                            value=""
+                          />
+                          {field.options.map(
+                            (option: string, index: number) => (
+                              <Picker.Item
+                                key={index}
+                                label={option}
+                                value={option}
+                              />
+                            )
+                          )}
+                        </Picker>
+                        <Button onPress={() => setShowPicker(false)}>
+                          Cerrar
+                        </Button>
+                      </View>
+                    </View>
+                  </Modal>
                 </View>
-              </Modal>
-            </View>
-          ) : (
-            <View
-              key={field.fieldName}
-              style={{
-                borderWidth: 1,
-                borderRadius: 10,
-                height: 50,
-                marginBottom: 15,
-                borderColor: "#ccc",
-              }}
-            >
-              <Picker
-                dropdownIconColor={"#00BCD4"}
-                selectedValue={formData[field.fieldName] || ""}
-                onValueChange={(value) =>
+              ) : (
+                <RNPickerSelect
+                  key={field.fieldName}
+                  onValueChange={(value) =>
+                    handleInputChange(field.fieldName, value)
+                  }
+                  items={field.options.map((option: string) => ({
+                    label: option,
+                    value: option,
+                  }))}
+                  placeholder={{
+                    label: "Seleccione una especialidad",
+                    value: "",
+                  }}
+                  value={formData[field.fieldName]}
+                  style={pickerSelectStyles}
+                />
+              );
+            }
+
+            // Renderizar campo de contraseña con visibilidad de contraseña
+            if (field.type === "password") {
+              return (
+                <TextInput
+                  key={field.fieldName}
+                  label={field.label}
+                  mode="outlined"
+                  secureTextEntry={!isPasswordVisible}
+                  value={formData[field.fieldName] || ""}
+                  onChangeText={(value) =>
+                    handleInputChange(field.fieldName, value)
+                  }
+                  style={styles.input}
+                  right={
+                    <TextInput.Icon
+                      icon={() => (
+                        <Icon
+                          name={
+                            isPasswordVisible ? "visibility" : "visibility-off"
+                          }
+                          size={24}
+                        />
+                      )}
+                      onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                    />
+                  }
+                />
+              );
+            }
+
+            return (
+              <TextInput
+                key={field.fieldName}
+                label={field.label}
+                mode="outlined"
+                secureTextEntry={field.type === "password"}
+                keyboardType={
+                  field.type === "email" ? "email-address" : "default"
+                }
+                value={formData[field.fieldName] || ""}
+                onChangeText={(value) =>
                   handleInputChange(field.fieldName, value)
                 }
-              >
-                <Picker.Item label="Seleccione una especialidad" value="" />
-                {field.options.map((option: string, index: number) => (
-                  <Picker.Item key={index} label={option} value={option} />
-                ))}
-              </Picker>
-            </View>
-          );
-        }
+                style={styles.input}
+                autoCapitalize={field.type === "email" ? "none" : "sentences"}
+              />
+            );
+          })}
 
-        return (
-          <TextInput
-            key={field.fieldName}
-            style={styles.input}
-            placeholder={field.label}
-            placeholderTextColor="#888"
-            secureTextEntry={field.type === "password"}
-            keyboardType={field.type === "email" ? "email-address" : "default"}
-            value={formData[field.fieldName] || ""}
-            onChangeText={(value) => handleInputChange(field.fieldName, value)}
-          />
-        );
-      })}
+          <Button
+            mode="contained"
+            onPress={handleRegister}
+            loading={isRegistering}
+            disabled={isRegistering}
+            style={styles.registerButton}
+          >
+            Registrarme
+          </Button>
 
-      <TouchableOpacity
-        style={styles.registerButton}
-        onPress={handleRegister}
-        disabled={isRegistering}
-      >
-        {isRegistering ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Registrarme</Text>
-        )}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => router.push("/login")}>
-        <Text style={styles.linkText}>Ya tengo una cuenta. Iniciar Sesión</Text>
-      </TouchableOpacity>
-    </View>
+          <TouchableOpacity onPress={() => router.push("/login")}>
+            <Text style={styles.linkText}>
+              Ya tengo una cuenta. Iniciar Sesión
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  // Estilos existentes, sin cambios
+  backgroundImage: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+  },
   container: {
     flex: 1,
     padding: 20,
     justifyContent: "center",
+  },
+  card: {
+    backgroundColor: "rgba(255, 255, 255, 0.9)",
+    padding: 20,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   headerText: {
     fontSize: 24,
@@ -241,37 +300,28 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 10,
     marginBottom: 15,
   },
   registerButton: {
-    backgroundColor: "#00BCD4",
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginBottom: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
+    marginTop: 10,
   },
   linkText: {
-    color: "#00BCD4",
+    color: "#007AFF",
     textAlign: "center",
     fontWeight: "bold",
+    fontSize: 16,
+    marginTop: 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   pickerButton: {
     borderColor: "#ccc",
     borderWidth: 1,
     borderRadius: 8,
     padding: 15,
-    justifyContent: "center",
     marginBottom: 15,
     backgroundColor: "#f5f5f5",
   },
@@ -286,9 +336,25 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    paddingVertical: 16,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    color: "#888",
+    marginBottom: 15,
+  },
+  inputAndroid: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    color: "#888",
+    marginBottom: 15,
   },
 });

@@ -4,6 +4,7 @@ import { View, StyleSheet, Image, ScrollView } from "react-native";
 import { Text, ActivityIndicator } from "react-native-paper";
 import WebView from "react-native-webview";
 import { fetchNewsById, News } from "@/services/api/newsService";
+
 function NoveltyScreen() {
   const [news, setNews] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingHorizontal: 20,
     paddingTop: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     marginTop: -30,
@@ -94,7 +95,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "bold",
     marginBottom: 16,
-    color: "#333",
+    color: "#333", // Color más oscuro para mejor contraste
     textAlign: "center",
   },
   webview: {
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 18,
-    color: "#ff0000",
+    color: "#B22222", // Rojo más oscuro para mejor contraste
   },
 });
 

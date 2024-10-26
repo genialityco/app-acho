@@ -1,53 +1,108 @@
-import { View, TouchableOpacity, Image, StyleSheet } from "react-native";
-import { IconButton, Text } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native"; // Importa el hook para la navegación
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
+import { Text } from "react-native-paper";
 import { router } from "expo-router";
+import { useOrganization } from "@/context/OrganizationContext";
+import { searchHighlights, Highlight } from "@/services/api/highlightService"
 
-interface Highlight {
-  id: string;
-  title: string;
-  image: any;
-}
+export default function RenderHighlights() {
+  const { organization } = useOrganization();
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-export default function RenderHighlights({
-  highlights,
-}: {
-  highlights: Highlight[];
-}) {
-  const navigation = useNavigation(); // Hook para acceder a la navegación
+  useEffect(() => {
+    if (organization?._id) {
+      fetchHighlights();
+    }
+  }, [organization]);
 
-  return highlights.map((highlight) => (
+  // Función para obtener los highlights filtrados por organizationId
+  const fetchHighlights = async () => {
+    setLoading(true);
+    try {
+      const filters = { organizationId: organization._id };
+      const results = await searchHighlights(filters);
+      if (results?.data?.items?.length > 0) {
+        setHighlights(results.data.items);
+      } else {
+        setHighlights([]);
+      }
+    } catch (error) {
+      console.error("Error al obtener los highlights:", error);
+      setHighlights([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Renderizar cada item de la lista de highlights
+  const renderItem = ({ item }: { item: Highlight }) => (
     <TouchableOpacity
-      key={highlight.id}
+      key={item._id}
       style={styles.highlightCard}
       onPress={() => {
-        router.push(`/eventosbefore/HighlightDetail?id=${highlight.id}`);
+        router.push(`/eventosbefore/HighlightDetail?id=${item._id}`);
       }}
     >
-      <Image source={highlight.image} style={styles.image} />
+      <Image source={{ uri: item.imageUrl }} style={styles.image} />
       <View style={styles.textOverlay}>
-        <Text style={styles.text}>{highlight.title}</Text>
-        <Text  style={styles.textEvent}>
-          Nombre evento
+        <Text style={styles.text}>{item.name}</Text>
+        <Text style={styles.textEvent}>Nombre evento</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Mostrar mensaje si no hay highlights disponibles
+  if (!loading && highlights.length === 0) {
+    return (
+      <View style={styles.noHighlightsContainer}>
+        <Text style={styles.noHighlightsText}>
+          No hay videos destacados disponibles.
         </Text>
       </View>
-      <IconButton
-        icon="pencil"
-        size={20}
-        style={styles.iconButton}
-        onPress={() => {
-          console.log(`Edit ${highlight.title}`);
-        }}
-      />
-    </TouchableOpacity>
-  ));
+    );
+  }
+
+  // Mostrar indicador de carga mientras se obtienen los highlights
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#b4d352" />
+      </View>
+    );
+  }
+
+  // Renderizar la lista de highlights si hay datos disponibles
+  return (
+    <FlatList
+      data={highlights}
+      renderItem={renderItem}
+      keyExtractor={(item) => item._id}
+      numColumns={2}
+      columnWrapperStyle={styles.columnWrapper}
+      contentContainerStyle={styles.container}
+    />
+  );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    paddingHorizontal: 0,
+  },
+  columnWrapper: {
+    justifyContent: "space-between",
+  },
   highlightCard: {
-    width: "47%",
-    height: 180,
-    marginBottom: 16,
+    flex: 1,
+    aspectRatio: 1,
+    margin: 3,
     borderRadius: 10,
     overflow: "hidden",
     position: "relative",
@@ -75,8 +130,18 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 10,
   },
-  iconButton: {
-    backgroundColor: "#E0E0E0",
-    borderRadius: 50,
+  noHighlightsContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  noHighlightsText: {
+    fontSize: 16,
+    color: "#777",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

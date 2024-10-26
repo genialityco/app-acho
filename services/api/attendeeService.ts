@@ -1,6 +1,7 @@
 import api from "./api";
 
 export interface Attendee {
+  userId: string;
   firebaseUid: string | null;
   organization: string | null;
   properties: {

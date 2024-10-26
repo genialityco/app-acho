@@ -14,6 +14,7 @@ interface Event {
   name: string;
   description: string;
   startDate: string;
+  endDate: string;
   styles: {
     eventImage: string;
     miniatureImage: string;
@@ -38,9 +39,19 @@ export default function RenderEvents({ events }: RenderEventsProps) {
   }, [events]);
 
   const formatDate = (
-    startDate: string | number | Date | dayjs.Dayjs | null | undefined
+    startDate: string | number | Date | dayjs.Dayjs | null | undefined,
+    endDate: string | number | Date | dayjs.Dayjs | null | undefined
   ) => {
-    return dayjs(startDate).format("MMM, DD, YYYY");
+    if (!startDate || !endDate) return "";
+
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+
+    if (start.isSame(end, "day")) {
+      return start.format("DD MMMM YYYY");
+    } else {
+      return `${start.format("DD MMM")} - ${end.format("DD MMM YYYY")}`;
+    }
   };
 
   if (loading) {
@@ -76,7 +87,7 @@ export default function RenderEvents({ events }: RenderEventsProps) {
             <View style={styles.contentColumnTwo}>
               <View style={styles.headerContainer}>
                 <Text style={styles.eventDate}>
-                  {formatDate(event.startDate)}
+                  {formatDate(event.startDate, event.endDate)}
                 </Text>
               </View>
 

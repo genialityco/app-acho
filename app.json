@@ -2,7 +2,7 @@
   "expo": {
     "name": "AchoApp",
     "slug": "gen-notifications",
-    "version": "1.0.0",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/icons/icon-android.png",
     "scheme": "achoapp",
@@ -16,9 +16,16 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.acho.eventosactualidad",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "buildNumber": "1.0.0",
+      "buildNumber": "1.0.5",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "AchoApp requiere acceso a la ubicación mientras se utiliza para personalizar la experiencia."
+        "NSLocationWhenInUseUsageDescription": "AchoApp requiere acceso a la ubicación mientras se utiliza para personalizar la experiencia.",
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyDPK8EK-KXxuCpoKYIU6VglAj8lpVrE1vA"
       }
     },
     "android": {
@@ -30,8 +37,14 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "ACCESS_FINE_LOCATION"
-      ]
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDPK8EK-KXxuCpoKYIU6VglAj8lpVrE1vA"
+        }
+      }
     },
     "web": {
       "bundler": "metro",
@@ -50,6 +63,12 @@
         "projectId": "7b771362-c331-49ce-94fd-f43d171a309e"
       }
     },
-    "owner": "geniality"
+    "owner": "geniality",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7b771362-c331-49ce-94fd-f43d171a309e"
+    }
   }
 }

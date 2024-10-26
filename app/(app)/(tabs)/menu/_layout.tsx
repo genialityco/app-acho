@@ -33,6 +33,7 @@ export default function MenuLayout() {
       <Stack.Screen
         name="index"
         options={{
+          title: "Perfil",
           headerShown: true,
           headerTitle: renderCenteredLogo,
         }}

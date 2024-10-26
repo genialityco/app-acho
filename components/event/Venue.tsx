@@ -31,33 +31,45 @@ export default function Venue() {
   );
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
+  const [locationPermissionGranted, setLocationPermissionGranted] =
+    useState(false);
 
-  // Obtener la ubicación actual del usuario
+  // Obtener la ubicación actual del usuario con manejo de errores
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permiso denegado", "No se pudo acceder a tu ubicación.");
-        return;
+    const getUserLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          setLocationPermissionGranted(true);
+          const userLocation = await Location.getCurrentPositionAsync({});
+          setLocation(userLocation);
+        } else {
+          setLocationPermissionGranted(false);
+          Alert.alert("Permiso denegado", "No se pudo acceder a tu ubicación.");
+        }
+      } catch (error) {
+        console.error("Error al obtener la ubicación del usuario:", error);
+        Alert.alert("Error", "No se pudo obtener la ubicación del usuario.");
       }
+    };
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-    })();
+    getUserLocation();
   }, []);
 
-  // Obtener los datos del evento desde el servicio
+  // Obtener los datos del evento desde el servicio con manejo de errores
   useEffect(() => {
     const getEventData = async () => {
       try {
         const response = await fetchEventById(eventId);
-        if (response.status === "success" && response.data.location !== null) {
+        if (response.status === "success" && response.data.location) {
           setEvent(response.data);
         } else {
           setEvent(null);
+          Alert.alert("Error", "No se encontraron datos del evento.");
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error al obtener datos del evento:", error);
+        Alert.alert("Error", "No se pudo cargar los datos del evento.");
       } finally {
         setLoading(false);
       }
@@ -70,28 +82,45 @@ export default function Venue() {
     }
   }, [eventId]);
 
-  // Función para abrir Google Maps o Apple Maps con indicaciones
+  // Función para abrir Google Maps o Apple Maps con validación
   const getDirections = () => {
-    if (!location || !event) {
+    if (!event || !event.location?.coordinates) {
       Alert.alert(
         "Error",
-        "No se pudo obtener tu ubicación o los datos del evento."
+        "No se encontraron datos de la ubicación del evento."
       );
       return;
     }
 
-    const userLatitude = location.coords.latitude;
-    const userLongitude = location.coords.longitude;
+    const userLatitude = location?.coords?.latitude;
+    const userLongitude = location?.coords?.longitude;
 
     const url = Platform.select({
-      ios: `maps://0,0?saddr=${userLatitude},${userLongitude}&daddr=${event.location.coordinates.latitude},${event.location.coordinates.longitude}`,
-      android: `google.navigation:q=${event.location.coordinates.latitude},${event.location.coordinates.longitude}&origin=${userLatitude},${userLongitude}`,
+      ios: `maps://0,0?saddr=${userLatitude || ""},${
+        userLongitude || ""
+      }&daddr=${event.location.coordinates.latitude},${
+        event.location.coordinates.longitude
+      }`,
+      android: `google.navigation:q=${event.location.coordinates.latitude},${
+        event.location.coordinates.longitude
+      }&origin=${userLatitude || ""},${userLongitude || ""}`,
     });
 
     if (url) {
-      Linking.openURL(url).catch(() =>
-        Alert.alert("Error", "No se pudo abrir la aplicación de mapas.")
-      );
+      Linking.canOpenURL(url)
+        .then((supported) => {
+          if (supported) {
+            return Linking.openURL(url);
+          } else {
+            Alert.alert("Error", "No se pudo abrir la aplicación de mapas.");
+          }
+        })
+        .catch((error) => {
+          console.error("Error al abrir la URL:", error);
+          Alert.alert("Error", "No se pudo abrir la aplicación de mapas.");
+        });
+    } else {
+      Alert.alert("Error", "URL inválida para obtener direcciones.");
     }
   };
 
@@ -117,47 +146,43 @@ export default function Venue() {
       <View style={styles.container}>
         {/* Mapa */}
         <View style={styles.mapContainer}>
-          {event && (
-            <MapView
-              style={styles.map}
-              region={{
+          <MapView
+            style={styles.map}
+            region={{
+              latitude: event.location.coordinates.latitude,
+              longitude: event.location.coordinates.longitude,
+              latitudeDelta: 0.01,
+              longitudeDelta: 0.01,
+            }}
+          >
+            <Marker
+              coordinate={{
                 latitude: event.location.coordinates.latitude,
                 longitude: event.location.coordinates.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
               }}
-            >
-              <Marker
-                coordinate={{
-                  latitude: event.location.coordinates.latitude,
-                  longitude: event.location.coordinates.longitude,
-                }}
-                title={event.name}
-                description={event.location.address}
-              />
-            </MapView>
-          )}
+              title={event.name}
+              description={event.location.address}
+            />
+          </MapView>
         </View>
 
         {/* Información del Evento */}
         <View style={styles.infoOverlayContainer}>
-          {event && (
-            <Card style={styles.venueCard}>
-              <Card.Content>
-                <Text style={styles.venueTitle}>{event.name}</Text>
-                <Text style={styles.venueDescription}>
-                  {event.location.address}
-                </Text>
-                <Button
-                  mode="contained"
-                  onPress={getDirections}
-                  style={styles.directionsButton}
-                >
-                  Obtener Indicaciones
-                </Button>
-              </Card.Content>
-            </Card>
-          )}
+          <Card style={styles.venueCard}>
+            <Card.Content>
+              <Text style={styles.venueTitle}>{event.name}</Text>
+              <Text style={styles.venueDescription}>
+                {event.location.address}
+              </Text>
+              <Button
+                mode="contained"
+                onPress={getDirections}
+                style={styles.directionsButton}
+              >
+                Obtener Indicaciones
+              </Button>
+            </Card.Content>
+          </Card>
         </View>
       </View>
     </ScrollView>

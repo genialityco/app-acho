@@ -22,8 +22,17 @@ interface Event {
   name: string;
   description: string;
   startDate: string;
+  endDate: string;
   styles: {
     eventImage: string;
+  };
+  eventSections: {
+    agenda: boolean;
+    speakers: boolean;
+    documents: boolean;
+    ubication: boolean;
+    certificate: boolean;
+    posters: boolean;
   };
 }
 
@@ -73,6 +82,7 @@ export default function EventDetail({ tab }: { tab: string }) {
         userId,
         eventId: event?._id,
         memberId,
+        attended: false
       };
       await createAttendee(attendeeData);
       setIsRegistered(true);
@@ -101,10 +111,26 @@ export default function EventDetail({ tab }: { tab: string }) {
     }
   };
 
-  const formatDate = (startDate: string) => {
+  // const formatDate = (startDate: string) => {
+  //   const start = dayjs(startDate);
+  //   const formattedDate = start.format("MMM, DD, YYYY - HH:mm A");
+  //   return formattedDate;
+  // };
+
+  const formatDate = (
+    startDate: string | number | Date | dayjs.Dayjs | null | undefined,
+    endDate: string | number | Date | dayjs.Dayjs | null | undefined
+  ) => {
+    if (!startDate || !endDate) return "";
+
     const start = dayjs(startDate);
-    const formattedDate = start.format("MMM, DD, YYYY - HH:mm A");
-    return formattedDate;
+    const end = dayjs(endDate);
+
+    if (start.isSame(end, "day")) {
+      return start.format("DD MMMM YYYY");
+    } else {
+      return `${start.format("DD MMM")} - ${end.format("DD MMM YYYY")}`;
+    }
   };
 
   if (loading) {
@@ -136,78 +162,98 @@ export default function EventDetail({ tab }: { tab: string }) {
           <View style={styles.content}>
             <Text style={styles.title}>{event?.name}</Text>
             <Text style={styles.date}>{event?.description}</Text>
-            <Text style={styles.date}>{formatDate(event?.startDate)}</Text>
+            <Text style={styles.date}>
+              {formatDate(event?.startDate, event?.endDate)}
+            </Text>
 
             <View style={styles.container}>
               <View style={styles.buttonRow}>
-                <View style={styles.buttonWrapper}>
-                  <FAB
-                    icon="format-list-text"
-                    color="white"
-                    style={styles.fab}
-                    onPress={() => {
-                      router.push(
-                        `/${tab}/components/program?eventId=${event._id}&tab=${tab}`
-                      );
-                    }}
-                  />
-                  <Text style={styles.label}>Programa</Text>
-                </View>
-                <View style={styles.buttonWrapper}>
-                  <FAB
-                    icon="account"
-                    color="white"
-                    style={styles.fab}
-                    onPress={() => {
-                      router.push(
-                        `/${tab}/components/speakers?eventId=${event._id}&tab=${tab}`
-                      );
-                    }}
-                  />
-                  <Text style={styles.label}>Conferencistas</Text>
-                </View>
-                <View style={styles.buttonWrapper}>
-                  <FAB
-                    icon="file-document"
-                    color="white"
-                    style={styles.fab}
-                    onPress={() => {
-                      router.push(
-                        `/${tab}/components/documents?eventId=${event._id}`
-                      );
-                    }}
-                  />
-                  <Text style={styles.label}>Documentos</Text>
-                </View>
+                {event?.eventSections.agenda && (
+                  <View style={styles.buttonWrapper}>
+                    <FAB
+                      icon="format-list-text"
+                      color="white"
+                      style={styles.fab}
+                      onPress={() => {
+                        router.push(
+                          `/${tab}/components/program?eventId=${event._id}&tab=${tab}`
+                        );
+                      }}
+                    />
+                    <Text style={styles.label}>Agenda</Text>
+                  </View>
+                )}
+                {event?.eventSections.speakers && (
+                  <View style={styles.buttonWrapper}>
+                    <FAB
+                      icon="account"
+                      color="white"
+                      style={styles.fab}
+                      onPress={() => {
+                        router.push(
+                          `/${tab}/components/speakers?eventId=${event._id}&tab=${tab}`
+                        );
+                      }}
+                    />
+                    <Text style={styles.label}>Conferencistas</Text>
+                  </View>
+                )}
+                {event?.eventSections.documents && (
+                  <View style={styles.buttonWrapper}>
+                    <FAB
+                      icon="file-document"
+                      color="white"
+                      style={styles.fab}
+                      onPress={() => {
+                        router.push(
+                          `/${tab}/components/documents?eventId=${event._id}&tab=${tab}`
+                        );
+                      }}
+                    />
+                    <Text style={styles.label}>Documentos</Text>
+                  </View>
+                )}
               </View>
 
               <View style={styles.buttonRow}>
-                <Link href={`/${tab}/components/venue?eventId=${event._id}`}>
-                  <View style={styles.buttonWrapper}>
-                    <FAB icon="map-marker" color="white" style={styles.fab} />
-                    <Text style={styles.label}>Ubicación</Text>
-                  </View>
-                </Link>
-                <Link
-                  href={`/${tab}/components/certificates?eventId=${event._id}`}
-                >
-                  <View style={styles.buttonWrapper}>
-                    <FAB icon="certificate" color="white" style={styles.fab} />
-                    <Text style={styles.label}>Certificado</Text>
-                  </View>
-                </Link>
-                <Link href={`/${tab}/components/posterslist?eventId=${event._id}&tab=${tab}`}>
-                  <View style={styles.buttonWrapper}>
-                    <FAB icon="post" color="white" style={styles.fab} />
-                    <Text style={styles.label}>Posters</Text>
-                  </View>
-                </Link>
+                {event?.eventSections.ubication && (
+                  <Link href={`/${tab}/components/venue?eventId=${event._id}`}>
+                    <View style={styles.buttonWrapper}>
+                      <FAB icon="map-marker" color="white" style={styles.fab} />
+                      <Text style={styles.label}>Ubicación</Text>
+                    </View>
+                  </Link>
+                )}
+                {event?.eventSections.certificate && (
+                  <Link
+                    href={`/${tab}/components/certificates?eventId=${event._id}&userId=${userId}&tab=${tab}`}
+                  >
+                    <View style={styles.buttonWrapper}>
+                      <FAB
+                        icon="certificate"
+                        color="white"
+                        style={styles.fab}
+                      />
+                      <Text style={styles.label}>Certificados</Text>
+                    </View>
+                  </Link>
+                )}
+                {event?.eventSections.posters && (
+                  <Link
+                    href={`/${tab}/components/posterslist?eventId=${event._id}&tab=${tab}&isMemberActive=${isMemberActive}`}
+                  >
+                    <View style={styles.buttonWrapper}>
+                      <FAB icon="image" color="white" style={styles.fab} />
+                      <Text style={styles.label}>Posters</Text>
+                    </View>
+                  </Link>
+                )}
               </View>
             </View>
           </View>
         </ScrollView>
 
-        {tab === "(index)" && isMemberActive && (
+        {tab === "(index)" && isMemberActive === "true" && (
           <View style={styles.fixedButtonContainer}>
             {!isRegistered ? (
               <Button
@@ -259,6 +305,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flex: 1,
+    justifyContent: "center",
+
     padding: 20,
   },
   title: {
@@ -269,17 +318,26 @@ const styles = StyleSheet.create({
   },
   date: {
     color: "white",
-    fontSize: 16,
+    fontWeight: "bold",
+    fontSize: 18,
     marginBottom: 20,
   },
   container: {
+    flex: 1,
+    height: "auto",
     justifyContent: "center",
+    alignItems: "center",
+    alignContent: "center",
     padding: 16,
+    marginTop: 20,
   },
   buttonRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 10,
+    width: "100%",
+    justifyContent: "center",
+    alignContent: "center",
+    alignItems: "center",
+    marginBottom: 50,
   },
   buttonWrapper: {
     alignItems: "center",
@@ -287,10 +345,11 @@ const styles = StyleSheet.create({
   fab: {
     backgroundColor: "#00BCD4",
     borderRadius: 50,
+    marginHorizontal: 30,
   },
   label: {
     marginTop: 5,
-    fontSize: 12,
+    fontSize: 15,
     color: "white",
   },
   fixedButtonContainer: {
