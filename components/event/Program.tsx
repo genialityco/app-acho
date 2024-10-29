@@ -12,7 +12,7 @@ import {
 import { Text } from "react-native-paper";
 import { searchAgendas } from "@/services/api/agendaService";
 import { router, useLocalSearchParams } from "expo-router";
-import dayjs from "dayjs";
+import dayjs from "dayjs"; // Para formatear las fechas
 import { Picker } from "@react-native-picker/picker";
 import { ActivityIndicator, Chip, IconButton } from "react-native-paper";
 
@@ -50,7 +50,7 @@ export default function Program() {
         return acc;
       }, {});
 
-      // Extraer salones y módulos únicos para los filtros, excluyendo undefined
+      // Extraer salones y módulos únicos para los filtros
       const uniqueRooms = [
         ...new Set(
           sessions
@@ -136,10 +136,7 @@ export default function Program() {
               </Text>
               <Text style={styles.sessionTitle}>{session.title}</Text>
               {(session.room || session.moduleId?.title) && (
-                <Text
-                  variant="labelSmall"
-                  style={{ marginTop: 5, color: "gray" }}
-                >
+                <Text variant="labelSmall" style={{ marginTop: 5, color: "gray" }}>
                   {session.room && (
                     <>
                       <Text style={{ fontWeight: "bold" }}>Salón: </Text>
@@ -209,7 +206,7 @@ export default function Program() {
     );
   };
 
-  // Función para renderizar la agenda por día
+  // Renderizar la agenda por día seleccionado
   const renderAgenda = () => {
     if (agenda[selectedDay]) {
       return renderSessionsTable(agenda[selectedDay]);
@@ -302,99 +299,52 @@ export default function Program() {
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
-      {/* Modal para iOS - Salones */}
+      {/* Modales para iOS */}
       {Platform.OS === "ios" && (
-        <Modal
-          visible={showRoomPicker}
-          animationType="slide"
-          transparent={true}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={filterRoom}
-                onValueChange={(value) => {
-                  setFilterRoom(value);
-                  setShowRoomPicker(false);
-                }}
-              >
-                <Picker.Item label="Salones" value="" />
-                {rooms.map((room, index) => (
-                  <Picker.Item key={index} label={room} value={room} />
-                ))}
-              </Picker>
-              <Button title="Cerrar" onPress={() => setShowRoomPicker(false)} />
+        <>
+          {/* Modal para Salones */}
+          <Modal visible={showRoomPicker} animationType="slide" transparent>
+            <View style={styles.modalContainer}>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={filterRoom}
+                  onValueChange={(value) => {
+                    setFilterRoom(value);
+                    setShowRoomPicker(false);
+                  }}
+                >
+                  <Picker.Item label="Salones" value="" />
+                  {rooms.map((room, index) => (
+                    <Picker.Item key={index} label={room} value={room} />
+                  ))}
+                </Picker>
+                <Button title="Cerrar" onPress={() => setShowRoomPicker(false)} />
+              </View>
             </View>
-          </View>
-        </Modal>
-      )}
+          </Modal>
 
-      {/* Modal para iOS - Módulos */}
-      {Platform.OS === "ios" && (
-        <Modal
-          visible={showModulePicker}
-          animationType="slide"
-          transparent={true}
-        >
-          <View style={styles.modalContainer}>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={filterModule}
-                onValueChange={(value) => {
-                  setFilterModule(value);
-                  setShowModulePicker(false);
-                }}
-              >
-                <Picker.Item label="Módulos" value="" />
-                {modules.map((module, index) => (
-                  <Picker.Item key={index} label={module} value={module} />
-                ))}
-              </Picker>
-              <Button
-                title="Cerrar"
-                onPress={() => setShowModulePicker(false)}
-              />
+          {/* Modal para Módulos */}
+          <Modal visible={showModulePicker} animationType="slide" transparent>
+            <View style={styles.modalContainer}>
+              <View style={styles.pickerContainer}>
+                <Picker
+                  selectedValue={filterModule}
+                  onValueChange={(value) => {
+                    setFilterModule(value);
+                    setShowModulePicker(false);
+                  }}
+                >
+                  <Picker.Item label="Módulos" value="" />
+                  {modules.map((module, index) => (
+                    <Picker.Item key={index} label={module} value={module} />
+                  ))}
+                </Picker>
+                <Button title="Cerrar" onPress={() => setShowModulePicker(false)} />
+              </View>
             </View>
-          </View>
-        </Modal>
+          </Modal>
+        </>
       )}
-
-      {/* Pickers para Android */}
-      {/* {Platform.OS === "android" && (
-        <View style={styles.androidPickerContainer}>
-          {showRoomPicker && (
-            <Picker
-              selectedValue={filterRoom}
-              onValueChange={(value) => {
-                setFilterRoom(value);
-                setShowRoomPicker(false);
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Salones" value="" />
-              {rooms.map((room, index) => (
-                <Picker.Item key={index} label={room} value={room} />
-              ))}
-            </Picker>
-          )}
-
-          {showModulePicker && (
-            <Picker
-              selectedValue={filterModule}
-              onValueChange={(value) => {
-                setFilterModule(value);
-                setShowModulePicker(false);
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Módulos" value="" />
-              {modules.map((module, index) => (
-                <Picker.Item key={index} label={module} value={module} />
-              ))}
-            </Picker>
-          )}
-        </View>
-      )} */}
 
       {/* Chips de filtros */}
       {(filterRoom || filterModule) !== "" && (
@@ -518,14 +468,6 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: "rgb(0, 105, 115)",
   },
-  sessionRoom: {
-    fontSize: 14,
-    color: "#555",
-  },
-  sessionModule: {
-    fontSize: 14,
-    color: "#555",
-  },
   speakersContainer: {
     flexDirection: "row",
     justifyContent: "flex-end",
@@ -565,9 +507,5 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
-  },
-  androidPickerContainer: {
-    flexDirection: "column",
-    marginVertical: 10,
   },
 });
