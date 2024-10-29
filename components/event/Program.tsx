@@ -55,14 +55,19 @@ export default function Program() {
         ...new Set(
           sessions
             .map((session: any) => session.room)
-            .filter((room: any) => room !== undefined)
+            .filter(
+              (room: any) => room !== undefined && room !== null && room !== ""
+            )
         ),
       ];
       const uniqueModules = [
         ...new Set(
           sessions
             .map((session: any) => session.moduleId?.title)
-            .filter((module: any) => module !== undefined)
+            .filter(
+              (module: any) =>
+                module !== undefined && module !== null && module !== ""
+            )
         ),
       ];
 
@@ -251,28 +256,66 @@ export default function Program() {
     <View style={styles.container}>
       {/* Filtros dinámicos de Salón y Módulo */}
       <View style={styles.filtersContainer}>
-        {/* Picker de Salones */}
-        <TouchableOpacity
-          style={styles.pickerButton}
-          onPress={() => {
-            setShowRoomPicker(true);
-            setShowModulePicker(false); // Asegúrate de cerrar el otro Picker
-          }}
-        >
-          <Text>{filterRoom || "Salones"}</Text>
-        </TouchableOpacity>
+        {/* Pickers para iOS */}
+        {Platform.OS === "ios" && (
+          <>
+            {/* Picker de Salones */}
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => {
+                setShowRoomPicker(true);
+                setShowModulePicker(false);
+              }}
+            >
+              <Text>{filterRoom || "Salones"}</Text>
+            </TouchableOpacity>
 
-        {/* Picker de Módulos */}
+            {/* Picker de Módulos */}
+            <TouchableOpacity
+              style={styles.pickerButton}
+              onPress={() => {
+                setShowModulePicker(true);
+                setShowRoomPicker(false);
+              }}
+            >
+              <Text>{filterModule || "Módulos"}</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
-        <TouchableOpacity
-          style={styles.pickerButton}
-          onPress={() => {
-            setShowModulePicker(true);
-            setShowRoomPicker(false); // Asegúrate de cerrar el otro Picker
-          }}
-        >
-          <Text>{filterModule || "Módulos"}</Text>
-        </TouchableOpacity>
+        {/* Pickers para Android */}
+        {Platform.OS === "android" && (
+          <View style={styles.androidPickerContainer}>
+            <Picker
+              selectedValue={filterRoom}
+              onValueChange={(value) => {
+                setFilterRoom(value);
+                setShowRoomPicker(false);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Salones" value="" />
+              {rooms.map((room, index) => (
+                <Picker.Item key={index} label={room} value={room} />
+              ))}
+            </Picker>
+
+            <Picker
+              selectedValue={filterModule}
+              onValueChange={(value) => {
+                setFilterModule(value);
+                setShowModulePicker(false);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Módulos" value="" />
+              {modules.map((module, index) => (
+                <Picker.Item key={index} label={module} value={module} />
+              ))}
+            </Picker>
+          </View>
+        )}
+
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
@@ -331,43 +374,6 @@ export default function Program() {
             </View>
           </View>
         </Modal>
-      )}
-
-      {/* Pickers para Android - Se muestran en línea */}
-      {Platform.OS === "android" && (
-        <View style={styles.androidPickerContainer}>
-          {showRoomPicker && (
-            <Picker
-              selectedValue={filterRoom}
-              onValueChange={(value) => {
-                setFilterRoom(value);
-                setShowRoomPicker(false);
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Salones" value="" />
-              {rooms.map((room, index) => (
-                <Picker.Item key={index} label={room} value={room} />
-              ))}
-            </Picker>
-          )}
-
-          {showModulePicker && (
-            <Picker
-              selectedValue={filterModule}
-              onValueChange={(value) => {
-                setFilterModule(value);
-                setShowModulePicker(false); // Oculta el Picker una vez seleccionado
-              }}
-              style={styles.picker}
-            >
-              <Picker.Item label="Módulos" value="" />
-              {modules.map((module, index) => (
-                <Picker.Item key={index} label={module} value={module} />
-              ))}
-            </Picker>
-          )}
-        </View>
       )}
 
       {/* Chips de filtros */}

@@ -258,7 +258,6 @@ export default function EventDetail({ tab }: { tab: string }) {
             {!isRegistered ? (
               <Button
                 mode="contained"
-                compact
                 style={styles.registerButton}
                 onPress={handleRegister}
                 loading={isLoading}
@@ -269,7 +268,6 @@ export default function EventDetail({ tab }: { tab: string }) {
             ) : (
               <Button
                 mode="contained"
-                compact
                 style={styles.unregisterButton}
                 onPress={handleUnregister}
                 loading={isLoading}
@@ -278,13 +276,6 @@ export default function EventDetail({ tab }: { tab: string }) {
                 Cancelar inscripción
               </Button>
             )}
-            <Button
-              mode="contained-tonal"
-              compact
-              style={styles.calendarButton}
-            >
-              Añadir a Mi Calendario
-            </Button>
           </View>
         )}
       </View>
