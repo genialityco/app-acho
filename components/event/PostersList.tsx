@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
   },
   votedPosterCard: {
     backgroundColor: "#d1f7c4", 
-    borderColor: "#4caf50", 
+    borderColor: "#4caf50",
   },
   posterInfo: {
     flex: 1,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   votedPosterTitle: {
-    color: "#4caf50", 
+    color: "#4caf50",
   },
   votedLabel: {
     marginTop: 5,

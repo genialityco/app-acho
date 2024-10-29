@@ -178,7 +178,9 @@ export default function PosterDetail() {
               }
               style={styles.voteButton}
             >
-              {hasAlreadyVoted === "true" ? "Ya has votado" : "Votar por este poster"}
+              {hasAlreadyVoted === "true"
+                ? "Ya has votado"
+                : "Votar por este poster"}
             </Button>
           )}
           <Button

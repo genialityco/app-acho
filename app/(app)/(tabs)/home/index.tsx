@@ -169,6 +169,7 @@ function HomeScreen() {
           <Text style={styles.sectionTitle}>Novedades</Text>
           {news.map((item) => (
             <TouchableOpacity
+              key={item._id}
               onPress={() => {
                 router.push(`/home/components/novelty?newId=${item._id}`);
               }}

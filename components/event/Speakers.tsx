@@ -1,7 +1,13 @@
 import { searchSpeakers } from "@/services/api/speakerService";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, FlatList, Image, StyleSheet } from "react-native";
+import {
+  View,
+  FlatList,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 import { Card, IconButton, Text, ActivityIndicator } from "react-native-paper";
 
 interface Speaker {
@@ -16,17 +22,17 @@ interface Speaker {
 export default function Speakers() {
   const { eventId, tab } = useLocalSearchParams();
   const [speakers, setSpeakers] = useState([] as Speaker[]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
 
   const fetchSpeakers = async () => {
-    setLoading(true); 
+    setLoading(true);
     try {
       const response = await searchSpeakers({ eventId: eventId });
       setSpeakers(response.data.items);
     } catch (error) {
       console.error("Error fetching speakers:", error);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
@@ -36,24 +42,32 @@ export default function Speakers() {
 
   const renderConferencista = ({ item }: { item: Speaker }) => (
     <Card style={styles.card}>
-      <View style={styles.cardContent}>
-        <Image source={{ uri: item.imageUrl }} style={styles.image} />
-        <View style={styles.overlay}>
-          <Text style={styles.name}>{item.names}</Text>
-          <Text style={styles.description}>{item.description}</Text>
+      <TouchableOpacity
+        onPress={() =>
+          router.push(
+            `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}`
+          )
+        }
+      >
+        <View style={styles.cardContent}>
+          <Image source={{ uri: item.imageUrl }} style={styles.image} />
+          <View style={styles.overlay}>
+            <Text style={styles.name}>{item.names}</Text>
+            <Text style={styles.description}>{item.description}</Text>
+          </View>
+          <IconButton
+            icon="eye"
+            iconColor="white"
+            size={12}
+            style={styles.iconButton}
+            onPress={() =>
+              router.push(
+                `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}`
+              )
+            }
+          />
         </View>
-        <IconButton
-          icon="eye"
-          iconColor="white"
-          size={12}
-          style={styles.iconButton}
-          onPress={() =>
-            router.push(
-              `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}`
-            )
-          }
-        />
-      </View>
+      </TouchableOpacity>
     </Card>
   );
 
@@ -66,7 +80,7 @@ export default function Speakers() {
     );
   }
 
-  if( speakers.length === 0 ) {
+  if (speakers.length === 0) {
     return (
       <View style={styles.loadingContainer}>
         <Text>No hay conferencistas disponibles</Text>
