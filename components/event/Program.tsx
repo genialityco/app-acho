@@ -136,7 +136,10 @@ export default function Program() {
               </Text>
               <Text style={styles.sessionTitle}>{session.title}</Text>
               {(session.room || session.moduleId?.title) && (
-                <Text variant="labelSmall" style={{ marginTop: 5, color: "gray" }}>
+                <Text
+                  variant="labelSmall"
+                  style={{ marginTop: 5, color: "gray" }}
+                >
                   {session.room && (
                     <>
                       <Text style={{ fontWeight: "bold" }}>Salón: </Text>
@@ -253,7 +256,7 @@ export default function Program() {
     <View style={styles.container}>
       {/* Filtros dinámicos de Salón y Módulo */}
       <View style={styles.filtersContainer}>
-        {Platform.OS === "ios" ? (
+        {Platform.OS === "ios" && (
           // TouchableOpacity para iOS
           <>
             <TouchableOpacity
@@ -270,13 +273,13 @@ export default function Program() {
               <Text>{filterModule || "Módulos"}</Text>
             </TouchableOpacity>
           </>
-        ) : (
-          // Pickers directos para Android
-          <>
+        )}
+        {Platform.OS === "android" && (
+          <View style={styles.androidPickerWrapper}>
             <Picker
               selectedValue={filterRoom}
               onValueChange={(value) => setFilterRoom(value)}
-              style={styles.picker}
+              style={styles.pickerAndroid}
             >
               <Picker.Item label="Salones" value="" />
               {rooms.map((room, index) => (
@@ -287,15 +290,16 @@ export default function Program() {
             <Picker
               selectedValue={filterModule}
               onValueChange={(value) => setFilterModule(value)}
-              style={styles.picker}
+              style={styles.pickerAndroid}
             >
               <Picker.Item label="Módulos" value="" />
               {modules.map((module, index) => (
                 <Picker.Item key={index} label={module} value={module} />
               ))}
             </Picker>
-          </>
+          </View>
         )}
+
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
@@ -318,7 +322,10 @@ export default function Program() {
                     <Picker.Item key={index} label={room} value={room} />
                   ))}
                 </Picker>
-                <Button title="Cerrar" onPress={() => setShowRoomPicker(false)} />
+                <Button
+                  title="Cerrar"
+                  onPress={() => setShowRoomPicker(false)}
+                />
               </View>
             </View>
           </Modal>
@@ -339,7 +346,10 @@ export default function Program() {
                     <Picker.Item key={index} label={module} value={module} />
                   ))}
                 </Picker>
-                <Button title="Cerrar" onPress={() => setShowModulePicker(false)} />
+                <Button
+                  title="Cerrar"
+                  onPress={() => setShowModulePicker(false)}
+                />
               </View>
             </View>
           </Modal>
@@ -507,5 +517,17 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
+  },
+  androidPickerWrapper: {
+    flex: 1,
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderColor: "#ccc",
+    borderWidth: 1,
+  },
+  pickerAndroid: {
+    height: 50,
+    width: "50%",
   },
 });
