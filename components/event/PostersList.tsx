@@ -216,8 +216,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "#000",
   },
   votedPosterCard: {
-    backgroundColor: "#d1f7c4", // Color de fondo para indicar que es el póster votado
-    borderColor: "#4caf50", // Borde verde para el póster votado
+    backgroundColor: "#d1f7c4", 
+    borderColor: "#4caf50", 
   },
   posterInfo: {
     flex: 1,
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   votedPosterTitle: {
-    color: "#4caf50", // Color verde para el título del póster votado
+    color: "#4caf50", 
   },
   votedLabel: {
     marginTop: 5,
