@@ -12,7 +12,7 @@ import {
 import { Text } from "react-native-paper";
 import { searchAgendas } from "@/services/api/agendaService";
 import { router, useLocalSearchParams } from "expo-router";
-import dayjs from "dayjs"; // Para formatear las fechas
+import dayjs from "dayjs";
 import { Picker } from "@react-native-picker/picker";
 import { ActivityIndicator, Chip, IconButton } from "react-native-paper";
 
@@ -256,42 +256,29 @@ export default function Program() {
     <View style={styles.container}>
       {/* Filtros dinámicos de Salón y Módulo */}
       <View style={styles.filtersContainer}>
-        {/* Pickers para iOS */}
-        {Platform.OS === "ios" && (
+        {Platform.OS === "ios" ? (
+          // TouchableOpacity para iOS
           <>
-            {/* Picker de Salones */}
             <TouchableOpacity
               style={styles.pickerButton}
-              onPress={() => {
-                setShowRoomPicker(true);
-                setShowModulePicker(false);
-              }}
+              onPress={() => setShowRoomPicker(true)}
             >
               <Text>{filterRoom || "Salones"}</Text>
             </TouchableOpacity>
 
-            {/* Picker de Módulos */}
             <TouchableOpacity
               style={styles.pickerButton}
-              onPress={() => {
-                setShowModulePicker(true);
-                setShowRoomPicker(false);
-              }}
+              onPress={() => setShowModulePicker(true)}
             >
               <Text>{filterModule || "Módulos"}</Text>
             </TouchableOpacity>
           </>
-        )}
-
-        {/* Pickers para Android */}
-        {Platform.OS === "android" && (
-          <View style={styles.androidPickerContainer}>
+        ) : (
+          // Pickers directos para Android
+          <>
             <Picker
               selectedValue={filterRoom}
-              onValueChange={(value) => {
-                setFilterRoom(value);
-                setShowRoomPicker(false);
-              }}
+              onValueChange={(value) => setFilterRoom(value)}
               style={styles.picker}
             >
               <Picker.Item label="Salones" value="" />
@@ -302,10 +289,7 @@ export default function Program() {
 
             <Picker
               selectedValue={filterModule}
-              onValueChange={(value) => {
-                setFilterModule(value);
-                setShowModulePicker(false);
-              }}
+              onValueChange={(value) => setFilterModule(value)}
               style={styles.picker}
             >
               <Picker.Item label="Módulos" value="" />
@@ -313,9 +297,8 @@ export default function Program() {
                 <Picker.Item key={index} label={module} value={module} />
               ))}
             </Picker>
-          </View>
+          </>
         )}
-
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
@@ -375,6 +358,43 @@ export default function Program() {
           </View>
         </Modal>
       )}
+
+      {/* Pickers para Android */}
+      {/* {Platform.OS === "android" && (
+        <View style={styles.androidPickerContainer}>
+          {showRoomPicker && (
+            <Picker
+              selectedValue={filterRoom}
+              onValueChange={(value) => {
+                setFilterRoom(value);
+                setShowRoomPicker(false);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Salones" value="" />
+              {rooms.map((room, index) => (
+                <Picker.Item key={index} label={room} value={room} />
+              ))}
+            </Picker>
+          )}
+
+          {showModulePicker && (
+            <Picker
+              selectedValue={filterModule}
+              onValueChange={(value) => {
+                setFilterModule(value);
+                setShowModulePicker(false);
+              }}
+              style={styles.picker}
+            >
+              <Picker.Item label="Módulos" value="" />
+              {modules.map((module, index) => (
+                <Picker.Item key={index} label={module} value={module} />
+              ))}
+            </Picker>
+          )}
+        </View>
+      )} */}
 
       {/* Chips de filtros */}
       {(filterRoom || filterModule) !== "" && (
