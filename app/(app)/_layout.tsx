@@ -21,6 +21,7 @@ import { updateExpoPushToken } from "@/services/api/userService";
 import { createNotification } from "@/services/api/notificationService";
 import { useNotifications } from "@/context/NotificationsContext";
 import Constants from "expo-constants";
+import { ActivityIndicator } from "react-native-paper";
 
 const { width } = Dimensions.get("window");
 
@@ -166,10 +167,10 @@ export default function ProtectedLayout() {
     return () => unsubscribe();
   }, []);
 
-  const handleCloseNotification = async () => {
+  const handleCloseNotification = () => {
     if (currentNotification) {
       try {
-        await markAsRead(currentNotification._id);
+        markAsRead(currentNotification._id);
         setShowNotificationModal(false);
 
         // Redirigir si hay una ruta en la data
@@ -177,16 +178,21 @@ export default function ProtectedLayout() {
           router.push(currentNotification.data.route);
         }
 
-        setCurrentNotification(null); 
+        setCurrentNotification(null);
       } catch (error) {
         console.error("Error al marcar la notificación como leída:", error);
       }
     }
   };
 
-  if (isLoading) {
-    return <Text>Cargando...</Text>;
-  }
+  // if (isLoading) {
+  //   return (
+  //     <View style={styles.loadingContainer}>
+  //       <ActivityIndicator animating={true} size="large" />
+  //       <Text>Cargando...</Text>
+  //     </View>
+  //   );
+  // }
 
   if (!isLoggedIn) {
     return <Redirect href="/login" />;
@@ -266,5 +272,10 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "#fff",
     fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

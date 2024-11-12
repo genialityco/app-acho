@@ -2,7 +2,7 @@
   "expo": {
     "name": "AchoApp",
     "slug": "gen-notifications",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icons/icon-android.png",
     "scheme": "achoapp",
@@ -16,7 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.acho.eventosactualidad",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "buildNumber": "1.0.5",
+      "buildNumber": "1.0.6",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "AchoApp requiere acceso a la ubicación mientras se utiliza para personalizar la experiencia.",
         "UIBackgroundModes": [

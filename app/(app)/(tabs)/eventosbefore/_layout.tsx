@@ -47,6 +47,14 @@ export default function EventosBeforeLayout() {
         name="HighlightDetail"
         options={{ title: "Momentos destacados", headerRight }}
       />
+            <Stack.Screen
+        name="components/posterslist"
+        options={{ title: "Posters", headerRight }}
+      />
+      <Stack.Screen
+        name="components/posterdetail"
+        options={{ title: "Detalles del Poster", headerRight }}
+      />
     </Stack>
   );
 }

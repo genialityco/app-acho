@@ -336,6 +336,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
+  asterisk: {
+    color: "red",
+  }
 });
 
 const pickerSelectStyles = StyleSheet.create({

@@ -279,13 +279,13 @@ export default function MenuScreen() {
             </TouchableOpacity>
 
             {/* Botón para eliminar cuenta */}
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.menuItem}
               onPress={handleDeleteAccount}
             >
               <Ionicons name="trash" size={24} color="white" />
               <Text style={styles.menuItemText}>Eliminar Cuenta</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
 
             {/* Botón de cerrar sesión */}
             <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>

@@ -18,9 +18,11 @@ import { useOrganization } from "@/context/OrganizationContext";
 import { Picker } from "@react-native-picker/picker";
 import RNPickerSelect from "react-native-picker-select";
 import { set } from "firebase/database";
+import { deleteUser } from "@/services/api/userService";
+import { router } from "expo-router";
 
 export default function EditProfileScreen() {
-  const { userId } = useAuth();
+  const { userId, deleteAccount } = useAuth();
   const { organization } = useOrganization();
   const [memberId, setMemberId] = useState("");
   const [fullName, setFullName] = useState("");
@@ -114,10 +116,47 @@ export default function EditProfileScreen() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    Alert.alert(
+      "Confirma la eliminación",
+      "¿Estás seguro de que deseas eliminar tu cuenta?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Confirmar",
+          onPress: async () => {
+            try {
+              if (userId) {
+                await deleteAccount();
+                await deleteUser(userId);
+                Alert.alert(
+                  "Cuenta Eliminada",
+                  "Tu cuenta ha sido eliminada correctamente."
+                );
+              }
+
+              router.replace("/login");
+            } catch (error) {
+              console.error("Error eliminando la cuenta:", error);
+              Alert.alert(
+                "Error",
+                "No se pudo eliminar la cuenta. Inténtalo de nuevo."
+              );
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} size="large"/>
+        <ActivityIndicator animating={true} size="large" />
         <Text style={styles.loadingText}>Cargando datos del perfil...</Text>
       </View>
     );
@@ -130,7 +169,6 @@ export default function EditProfileScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
-          <Text style={styles.headerText}>Editar Perfil</Text>
 
           <TextInput
             label="Nombre Completo"
@@ -231,6 +269,15 @@ export default function EditProfileScreen() {
           >
             Actualizar Perfil
           </Button>
+          <Button
+            buttonColor="red"
+            textColor="white"
+            icon="delete"
+            onPress={handleDeleteAccount}
+            style={styles.deleteButton}
+          >
+            Eliminar Cuenta
+          </Button>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -301,6 +348,11 @@ const styles = StyleSheet.create({
     width: "100%",
     paddingVertical: 10,
     marginTop: 10,
+  },
+  deleteButton: {
+    width: "100%",
+    paddingVertical: 10,
+    marginTop: 30,
   },
 });
 

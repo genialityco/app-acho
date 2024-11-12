@@ -12,13 +12,11 @@ import { ReactNode } from "react";
 import { createUser, searchUsers } from "@/services/api/userService";
 import { createMember } from "@/services/api/memberService";
 import { Alert } from "react-native";
-import { Database } from "firebase/database";
 
 // Definición del contexto de autenticación
 const AuthContext = createContext<{
   isLoggedIn: boolean;
   isLoading: boolean;
-  idToken: string | null;
   userId: string | null;
   setUserId: (id: string | null) => void;
   uid: string | null;
@@ -36,7 +34,6 @@ const AuthContext = createContext<{
 }>({
   isLoggedIn: false,
   isLoading: true,
-  idToken: null,
   userId: null,
   setUserId: () => {},
   uid: null,
@@ -56,14 +53,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [authState, setAuthState] = useState<{
     isLoggedIn: boolean;
     isLoading: boolean;
-    idToken: string | null;
     userId: string | null;
     uid: string | null;
     authError: string | null;
   }>({
     isLoggedIn: false,
     isLoading: true,
-    idToken: null,
     userId: null,
     uid: null,
     authError: null,
@@ -73,25 +68,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        try {
-          const token = await user.getIdToken();
-          await AsyncStorage.multiSet([
-            ["userToken", token],
-            ["userUid", user.uid],
-          ]);
-          setAuthState({
-            isLoggedIn: true,
-            isLoading: true,
-            idToken: token,
-            uid: user.uid,
-            userId: null,
-            authError: null,
-          });
-          await fetchUserData(user.uid);
-        } catch (error) {
-          console.error("Error al obtener el token:", error);
-          handleAuthError(error);
-        }
+        await AsyncStorage.setItem("userUid", user.uid);
+        setAuthState({
+          isLoggedIn: true,
+          isLoading: true,
+          uid: user.uid,
+          userId: null,
+          authError: null,
+        });
+        await fetchUserData(user.uid);
       } else {
         await handleSignOut();
       }
@@ -142,18 +127,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password
       );
-
       const user = userCredential.user;
-      const token = await user.getIdToken();
 
-      // Guardar el token y el UID en AsyncStorage
-      await AsyncStorage.multiSet([
-        ["userToken", token],
-        ["userUid", userCredential.user.uid],
-      ]);
+      // Guardar el UID en AsyncStorage
+      await AsyncStorage.multiSet([["userUid", user.uid]]);
 
       // Crear usuario en la base de datos
       const response = await createUser({ firebaseUid: user.uid });
+
+      if (!response.status) {
+        throw new Error("Error al crear el usuario en la base de datos.");
+      }
+
       const userCreated = response.data;
 
       const responseCreateMember = await createMember({
@@ -163,10 +148,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       });
 
       if (!responseCreateMember.status) {
-        Alert.alert(
-          "Error",
-          "No se pudo crear el miembro en la base de datos. Inténtalo nuevamente."
-        );
         throw new Error("Error al crear el miembro en la base de datos.");
       }
 
@@ -174,7 +155,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setAuthState((prevState) => ({
         ...prevState,
         isLoggedIn: true,
-        idToken: token,
+        isLoading: false,
         uid: user.uid,
         userId: userCreated._id,
         authError: null,
@@ -183,29 +164,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return true;
     } catch (error) {
       console.error("Error al registrar el usuario:", error);
-
-      // Si falla la creación en la base de datos, eliminar el usuario de Firebase
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        try {
-          await firebaseDeleteUser(currentUser);
-          const refLogs = ref(db, "logs");
-          set(refLogs, {
-            message: `Usuario eliminado de Firebase: ${currentUser.uid}`,
-            createdAt: new Date().toISOString(),
-          });
-          console.log("Usuario eliminado de Firebase");
-        } catch (deleteError) {
-          console.error(
-            "Error al eliminar el usuario de Firebase:",
-            deleteError
-          );
-          Alert.alert(
-            "Error",
-            "Ocurrió un problema al eliminar el usuario de Firebase."
-          );
-        }
-      }
 
       // Manejar el error de autenticación y mostrar alerta directamente
       handleAuthError(error);
@@ -223,15 +181,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         email,
         password
       );
-      const token = await userCredential.user.getIdToken();
-      await AsyncStorage.multiSet([
-        ["userToken", token],
-        ["userUid", userCredential.user.uid],
-      ]);
+
+      await AsyncStorage.multiSet([["userUid", userCredential.user.uid]]);
+
       setAuthState((prevState) => ({
         ...prevState,
         isLoggedIn: true,
-        idToken: token,
         uid: userCredential.user.uid,
         authError: null,
       }));
@@ -280,7 +235,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAuthState({
       isLoggedIn: false,
       isLoading: false,
-      idToken: null,
       uid: null,
       userId: null,
       authError: null,

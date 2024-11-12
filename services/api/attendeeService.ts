@@ -9,7 +9,7 @@ export interface Attendee {
     specialty: string;
     idNumber: string;
     phone: string;
-    profilePhoto: string ;
+    profilePhoto: string;
   } | null;
 }
 
@@ -79,14 +79,9 @@ export const searchAttendees = async (filters: any) => {
   }
 };
 
-export const registerAttendee = async (
-  attendeeData: Partial<Attendee>,
-  idToken: string
-) => {
+export const registerAttendee = async (attendeeData: Partial<Attendee>) => {
   try {
-    const response = await api.post("/attendees/register", attendeeData, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    });
+    const response = await api.post("/attendees/register", attendeeData);
     return response.data;
   } catch (error) {
     console.error("Error registering attendee:", error);
