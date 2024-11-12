@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Text, IconButton, ActivityIndicator } from "react-native-paper";
 import { searchPosters, Poster } from "@/services/api/posterService";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import debounce from "lodash.debounce";
 import { useAuth } from "@/context/AuthContext";
 
@@ -55,8 +55,9 @@ export default function PostersList() {
         const postersData = response.data.items;
 
         // Verificar si el usuario ya ha votado por algún póster
-        const userVotedPoster = postersData.find((poster) =>
-          poster.voters.includes(userId)
+        const userVotedPoster = postersData.find(
+          (poster: { voters: (string | null)[] }) =>
+            poster.voters.includes(userId)
         );
 
         if (userVotedPoster) {
@@ -64,7 +65,7 @@ export default function PostersList() {
           setVotedPoster(userVotedPoster);
           setHasAlreadyVoted(true);
           const filteredPosters = postersData.filter(
-            (poster) => poster._id !== userVotedPoster._id
+            (poster: { _id: any }) => poster._id !== userVotedPoster._id
           );
           setPosters([userVotedPoster, ...filteredPosters]);
         } else {
@@ -83,9 +84,15 @@ export default function PostersList() {
     }
   };
 
-  useEffect(() => {
-    fetchFilteredPosters();
-  }, [debouncedSearchTerm, eventId, page]);
+  useFocusEffect(
+    React.useCallback(() => {
+      setPosters([]);
+      setVotedPoster(null);
+      setHasAlreadyVoted(false);
+      setPage(1);
+      fetchFilteredPosters();
+    }, [eventId, debouncedSearchTerm, page])
+  );
 
   const handleSearchChange = (text: string) => {
     setSearchTerm(text);
@@ -216,7 +223,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#000",
   },
   votedPosterCard: {
-    backgroundColor: "#d1f7c4", 
+    backgroundColor: "#d1f7c4",
     borderColor: "#4caf50",
   },
   posterInfo: {
