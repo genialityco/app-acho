@@ -128,124 +128,132 @@ export default function RegisterScreen() {
         <View style={styles.card}>
           <Text style={styles.headerText}>Crear una Cuenta</Text>
 
-          {organizationData?.propertiesDefinition.map((field) => {
-            const isFieldRequired = field.required;
-            const fieldError = fieldErrors[field.fieldName];
-            if (field.fieldName === "specialty" && field.type === "list") {
-              return Platform.OS === "ios" ? (
-                <View key={field.fieldName}>
-                  <TouchableOpacity
-                    onPress={() => setShowPicker(true)}
-                    style={styles.pickerButton}
-                  >
-                    <Text>
-                      {formData[field.fieldName] ||
-                        "Seleccione una especialidad"}
-                      {isFieldRequired && (
-                        <Text style={styles.asterisk}>*</Text>
-                      )}
-                    </Text>
-                  </TouchableOpacity>
+          {organizationData?.propertiesDefinition
+            .filter((field) => field.show)
+            .map((field) => {
+              const isFieldRequired = field.required;
+              const fieldError = fieldErrors[field.fieldName];
+              if (field.fieldName === "specialty" && field.type === "list") {
+                return Platform.OS === "ios" ? (
+                  <View key={field.fieldName}>
+                    <TouchableOpacity
+                      onPress={() => setShowPicker(true)}
+                      style={styles.pickerButton}
+                    >
+                      <Text>
+                        {formData[field.fieldName] ||
+                          "Seleccione una especialidad"}
+                        {isFieldRequired && (
+                          <Text style={styles.asterisk}>*</Text>
+                        )}
+                      </Text>
+                    </TouchableOpacity>
 
-                  <Modal visible={showPicker} animationType="slide" transparent>
-                    <View style={styles.modalContainer}>
-                      <View style={styles.pickerContainer}>
-                        <Picker
-                          selectedValue={formData[field.fieldName] || ""}
-                          onValueChange={(value) => {
-                            handleInputChange(field.fieldName, value);
-                            setShowPicker(false);
-                          }}
-                        >
-                          <Picker.Item
-                            label="Seleccione una especialidad"
-                            value=""
-                          />
-                          {field.options.map(
-                            (option: string, index: number) => (
-                              <Picker.Item
-                                key={index}
-                                label={option}
-                                value={option}
-                              />
-                            )
-                          )}
-                        </Picker>
-                        <Button onPress={() => setShowPicker(false)}>
-                          Cerrar
-                        </Button>
+                    <Modal
+                      visible={showPicker}
+                      animationType="slide"
+                      transparent
+                    >
+                      <View style={styles.modalContainer}>
+                        <View style={styles.pickerContainer}>
+                          <Picker
+                            selectedValue={formData[field.fieldName] || ""}
+                            onValueChange={(value) => {
+                              handleInputChange(field.fieldName, value);
+                              setShowPicker(false);
+                            }}
+                          >
+                            <Picker.Item
+                              label="Seleccione una especialidad"
+                              value=""
+                            />
+                            {field.options.map(
+                              (option: string, index: number) => (
+                                <Picker.Item
+                                  key={index}
+                                  label={option}
+                                  value={option}
+                                />
+                              )
+                            )}
+                          </Picker>
+                          <Button onPress={() => setShowPicker(false)}>
+                            Cerrar
+                          </Button>
+                        </View>
                       </View>
-                    </View>
-                  </Modal>
-                </View>
-              ) : (
-                <RNPickerSelect
-                  key={field.fieldName}
-                  onValueChange={(value) =>
-                    handleInputChange(field.fieldName, value)
-                  }
-                  items={field.options.map((option: string) => ({
-                    label: option,
-                    value: option,
-                  }))}
-                  placeholder={{
-                    label: "Seleccione una especialidad",
-                    value: "",
-                  }}
-                  value={formData[field.fieldName]}
-                  style={pickerSelectStyles}
-                />
-              );
-            }
+                    </Modal>
+                  </View>
+                ) : (
+                  <RNPickerSelect
+                    key={field.fieldName}
+                    onValueChange={(value) =>
+                      handleInputChange(field.fieldName, value)
+                    }
+                    items={field.options.map((option: string) => ({
+                      label: option,
+                      value: option,
+                    }))}
+                    placeholder={{
+                      label: "Seleccione una especialidad",
+                      value: "",
+                    }}
+                    value={formData[field.fieldName]}
+                    style={pickerSelectStyles}
+                  />
+                );
+              }
 
-            // Renderizar campo de contraseña con visibilidad de contraseña
-            if (field.type === "password") {
+              // Renderizar campo de contraseña con visibilidad de contraseña
+              if (field.type === "password") {
+                return (
+                  <TextInput
+                    key={field.fieldName}
+                    label={field.label}
+                    mode="outlined"
+                    secureTextEntry={!isPasswordVisible}
+                    value={formData[field.fieldName] || ""}
+                    onChangeText={(value) =>
+                      handleInputChange(field.fieldName, value)
+                    }
+                    style={styles.input}
+                    right={
+                      <TextInput.Icon
+                        icon={() => (
+                          <Icon
+                            name={
+                              isPasswordVisible
+                                ? "visibility"
+                                : "visibility-off"
+                            }
+                            size={24}
+                          />
+                        )}
+                        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                      />
+                    }
+                  />
+                );
+              }
+
               return (
                 <TextInput
                   key={field.fieldName}
                   label={field.label}
                   mode="outlined"
-                  secureTextEntry={!isPasswordVisible}
+                  secureTextEntry={field.type === "password"}
+                  keyboardType={
+                    field.type === "email" ? "email-address" : "default"
+                  }
                   value={formData[field.fieldName] || ""}
                   onChangeText={(value) =>
                     handleInputChange(field.fieldName, value)
                   }
                   style={styles.input}
-                  right={
-                    <TextInput.Icon
-                      icon={() => (
-                        <Icon
-                          name={
-                            isPasswordVisible ? "visibility" : "visibility-off"
-                          }
-                          size={24}
-                        />
-                      )}
-                      onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                    />
-                  }
+                  autoCapitalize={field.type === "email" ? "none" : "sentences"}
                 />
               );
-            }
-
-            return (
-              <TextInput
-                key={field.fieldName}
-                label={field.label}
-                mode="outlined"
-                secureTextEntry={field.type === "password"}
-                keyboardType={
-                  field.type === "email" ? "email-address" : "default"
-                }
-                value={formData[field.fieldName] || ""}
-                onChangeText={(value) =>
-                  handleInputChange(field.fieldName, value)
-                }
-                style={styles.input}
-                autoCapitalize={field.type === "email" ? "none" : "sentences"}
-              />
-            );
-          })}
+            })}
 
           <Button
             mode="contained"
@@ -338,7 +346,7 @@ const styles = StyleSheet.create({
   },
   asterisk: {
     color: "red",
-  }
+  },
 });
 
 const pickerSelectStyles = StyleSheet.create({

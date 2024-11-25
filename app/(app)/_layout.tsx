@@ -108,26 +108,26 @@ export default function ProtectedLayout() {
         Notifications.addNotificationReceivedListener(async (notification) => {
           console.log("Notificación recibida: ", notification);
 
-          if (userId) {
-            const notificationData = {
-              userId,
-              title: notification.request.content.title ?? "Nueva notificación",
-              body: notification.request.content.body ?? "Sin contenido",
-              data: notification.request.content.data,
-              isRead: false,
-            };
+          // if (userId) {
+          //   const notificationData = {
+          //     userId,
+          //     title: notification.request.content.title ?? "Nueva notificación",
+          //     body: notification.request.content.body ?? "Sin contenido",
+          //     data: notification.request.content.data,
+          //     isRead: false,
+          //   };
 
-            try {
-              const response = await createNotification(notificationData);
-              if (response) {
-                addNotification(response);
-                setCurrentNotification(response);
-                setShowNotificationModal(true);
-              }
-            } catch (error) {
-              console.error("Error al guardar la notificación:", error);
-            }
-          }
+          //   try {
+          //     const response = await createNotification(notificationData);
+          //     if (response) {
+          //       addNotification(response);
+          //       setCurrentNotification(response);
+          //       setShowNotificationModal(true);
+          //     }
+          //   } catch (error) {
+          //     console.error("Error al guardar la notificación:", error);
+          //   }
+          // }
         });
 
       // Listener para respuestas a notificaciones

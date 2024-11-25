@@ -139,21 +139,29 @@ function HomeScreen() {
             <Text style={styles.modalBody}>
               {selectedNotification?.body || "Sin contenido"}
             </Text>
-            {selectedNotification?.data?.route && (
-              <Pressable
-                style={styles.routeButton}
-                onPress={() =>
-                  handleRouteRedirect(selectedNotification.data.route)
-                }
-              >
-                <Text style={styles.routeButtonText}>
-                  Ir a {selectedNotification.data.route}
-                </Text>
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                gap: 10,
+              }}
+            >
+              {selectedNotification?.data?.route && (
+                <Pressable
+                  style={styles.routeButton}
+                  onPress={() =>
+                    handleRouteRedirect(selectedNotification.data.route)
+                  }
+                >
+                  <Text style={styles.routeButtonText}>Ver</Text>
+                </Pressable>
+              )}
+              <Pressable style={styles.closeButton} onPress={handleCloseModal}>
+                <Text style={styles.closeButtonText}>Cerrar</Text>
               </Pressable>
-            )}
-            <Pressable style={styles.closeButton} onPress={handleCloseModal}>
-              <Text style={styles.closeButtonText}>Cerrar</Text>
-            </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -280,7 +288,6 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#00796b",
     borderRadius: 8,
-    marginBottom: 10,
   },
   routeButtonText: {
     color: "#fff",

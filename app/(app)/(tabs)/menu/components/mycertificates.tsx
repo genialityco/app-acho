@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Card, Text, Button, ActivityIndicator } from "react-native-paper";
 import { WebView } from "react-native-webview";
-import { useAuth } from "@/context/AuthContext"; // Contexto de autenticación
+import { useAuth } from "@/context/AuthContext"; 
 import { searchAttendees } from "@/services/api/attendeeService";
 import Icon from "react-native-vector-icons/MaterialIcons";
 
