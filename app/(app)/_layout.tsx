@@ -100,7 +100,7 @@ export default function ProtectedLayout() {
   };
 
   useEffect(() => {
-    if (userId) {
+    if (userId && organization) {
       registerAndSavePushToken();
 
       // Listener para notificaciones entrantes
@@ -152,7 +152,7 @@ export default function ProtectedLayout() {
         }
       };
     }
-  }, [userId]);
+  }, [userId, organization]);
 
   useEffect(() => {
     const drawerStatusRef = ref(db, "drawer-status-acho");
@@ -185,14 +185,14 @@ export default function ProtectedLayout() {
     }
   };
 
-  // if (isLoading) {
-  //   return (
-  //     <View style={styles.loadingContainer}>
-  //       <ActivityIndicator animating={true} size="large" />
-  //       <Text>Cargando...</Text>
-  //     </View>
-  //   );
-  // }
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator animating={true} size="large" />
+        <Text>Cargando...</Text>
+      </View>
+    );
+  }
 
   if (!isLoggedIn) {
     return <Redirect href="/login" />;

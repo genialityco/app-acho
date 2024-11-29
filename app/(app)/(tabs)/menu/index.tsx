@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
   Switch,
+  Modal,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -17,15 +18,17 @@ import {
   deleteUser,
   searchUsers,
   updateUser,
-} from "@/services/api/userService"; // Añade updateUser para actualizar el usuario
+} from "@/services/api/userService";
 import { searchMembers } from "@/services/api/memberService";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
+import { Button } from "react-native-paper";
 
 export default function MenuScreen() {
   const [user, setUser] = useState<Attendee>({} as Attendee);
-  const [isPushEnabled, setIsPushEnabled] = useState(false); // Estado para el toggle de notificaciones
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [isQrModalVisible, setIsQrModalVisible] = useState(false);
   const { signOut, uid, deleteAccount } = useAuth();
   const router = useRouter();
 
@@ -207,19 +210,41 @@ export default function MenuScreen() {
     }
   };
 
+  const generateQrUrl = () => {
+    if (!user?.properties?.idNumber) return null;
+    return `https://api.qrserver.com/v1/create-qr-code/?data=${user.properties.idNumber}&size=200x200`;
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       {user && (
         <View style={styles.menuContainer}>
           {/* Header del menú */}
           <View style={styles.menuHeader}>
-            <Image
-              source={{
-                uri: handleProfilePhoto(),
+            <View
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                alignContent: "center",
+                alignItems: "center",
               }}
-              style={styles.avatar}
-            />
-            <Text style={styles.userName}>{user.properties?.fullName}</Text>
+            >
+              <Image
+                source={{
+                  uri: handleProfilePhoto(),
+                }}
+                style={styles.avatar}
+              />
+              <Text style={styles.userName}>{user.properties?.fullName}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setIsQrModalVisible(true)}>
+              <Ionicons
+                name="qr-code"
+                size={24}
+                color="black"
+                style={{ marginLeft: 10 }}
+              />
+            </TouchableOpacity>
           </View>
 
           {/* Menú de opciones */}
@@ -295,6 +320,29 @@ export default function MenuScreen() {
           </View>
         </View>
       )}
+
+      <Modal
+        visible={isQrModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsQrModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Tu Código QR</Text>
+            {user?.properties?.idNumber ? (
+              <Image source={{ uri: generateQrUrl() }} style={styles.qrImage} />
+            ) : (
+              <Text style={styles.errorText}>
+                No se pudo generar el código QR.
+              </Text>
+            )}
+            <Button mode="contained-tonal" onPress={() => setIsQrModalVisible(false)}>
+            Cerrar
+            </Button>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -313,6 +361,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 50,
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
     padding: 10,
   },
@@ -349,5 +398,40 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     marginLeft: 15,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  qrImage: {
+    width: 200,
+    height: 200,
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: "#00BCD4",
+    padding: 10,
+    borderRadius: 5,
+  },
+  closeButtonText: {
+    color: "white",
+    fontSize: 16,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
   },
 });

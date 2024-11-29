@@ -5,6 +5,8 @@ import {
   ImageBackground,
   StyleSheet,
   ScrollView,
+  Platform,
+  Linking,
 } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Button, FAB, ActivityIndicator } from "react-native-paper";
@@ -82,7 +84,7 @@ export default function EventDetail({ tab }: { tab: string }) {
         userId,
         eventId: event?._id,
         memberId,
-        attended: false
+        attended: false,
       };
       await createAttendee(attendeeData);
       setIsRegistered(true);
@@ -131,6 +133,47 @@ export default function EventDetail({ tab }: { tab: string }) {
     } else {
       return `${start.format("DD MMM")} - ${end.format("DD MMM YYYY")}`;
     }
+  };
+
+  const handleAddToCalendar = async () => {
+    if (!event?.startDate || !event?.endDate) {
+      alert("Fechas no disponibles para este evento.");
+      return;
+    }
+
+    const title = encodeURIComponent(event.name || "Evento");
+    const description = encodeURIComponent(event.description || "");
+    const startDate = new Date(event.startDate).getTime();
+    const endDate = new Date(event.endDate).getTime();
+
+    if (Platform.OS === "android") {
+      // Usar la URL explícita de Google Calendar
+      const url = `http://www.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${description}&dates=${formatDateForCalendar(
+        startDate
+      )}/${formatDateForCalendar(endDate)}`;
+
+      Linking.openURL(url).catch((err) => {
+        console.error("Error al abrir el calendario en Android:", err);
+        alert(
+          "No se pudo abrir Google Calendar. Asegúrate de tener una aplicación de calendario instalada."
+        );
+      });
+    } else if (Platform.OS === "ios") {
+      // URL para iOS usando `calshow`
+      const url = `calshow:${startDate / 1000}`; 
+      Linking.openURL(url).catch((err) => {
+        console.error("Error al abrir el calendario en iOS:", err);
+        alert("No se pudo abrir el calendario.");
+      });
+    } else {
+      alert("Esta funcionalidad no es compatible con tu dispositivo.");
+    }
+  };
+
+  // Función para formatear fechas para Google Calendar
+  const formatDateForCalendar = (timestamp: number): string => {
+    const date = new Date(timestamp);
+    return date.toISOString().replace(/[-:]|\.\d{3}/g, "");
   };
 
   if (loading) {
@@ -263,7 +306,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                 loading={isLoading}
                 disabled={isLoading}
               >
-                Inscribirme
+                Inscribirmee
               </Button>
             ) : (
               <Button
@@ -276,6 +319,13 @@ export default function EventDetail({ tab }: { tab: string }) {
                 Cancelar inscripción
               </Button>
             )}
+            <Button
+              mode="contained-tonal"
+              style={styles.calendarButton}
+              onPress={handleAddToCalendar}
+            >
+              Agregar al calendario
+            </Button>
           </View>
         )}
       </View>

@@ -67,7 +67,7 @@ export default function EventosScreen() {
       // Ordenar y filtrar eventos
       const sortedEvents = sortEventsByDate(eventResponse.data.items);
       const upcomingEvents = filterUpcomingEvents(sortedEvents);
-      
+
       const attendeeResponse = await searchAttendees({ userId });
       if (attendeeResponse.message === "No se encontraron asistentes") {
         await handleNoAttendees(upcomingEvents, eventResponse.data.totalPages);
@@ -99,10 +99,15 @@ export default function EventosScreen() {
   const filterUpcomingEvents = (events: any[]) => {
     const today = new Date();
     return events.filter(
-      (event: { startDate: string | number | Date }) =>
-        new Date(event.startDate).getTime() >= today.getTime()
+      (event: { startDate: string | number | Date; endDate: string | number | Date }) => {
+        const startDate = new Date(event.startDate).getTime();
+        const endDate = new Date(event.endDate).getTime();
+  
+        return startDate <= today.getTime() && endDate >= today.getTime();
+      }
     );
   };
+  
 
   // Función para manejar cuando no hay asistentes registrados
   const handleNoAttendees = async (

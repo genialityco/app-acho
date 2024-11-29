@@ -84,6 +84,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     return () => unsubscribe();
   }, []);
+  
 
   // Ultima función para obtener los datos del usuario desde la API y autenticar usuario
   const fetchUserData = async (uid: string) => {

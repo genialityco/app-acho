@@ -117,7 +117,7 @@ export default function EventsBeforeScreen() {
       <View style={styles.contentContainer}>
         {activeTab === "highlights" ? (
           <View style={styles.gridContainer}>
-            <RenderHighlights highlights={highlights} />
+            <RenderHighlights />
           </View>
         ) : (
           <RenderEvents events={pastEvents} />
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   contentContainer: {
-    paddingTop: 16,
+    paddingTop: 5,
   },
   gridContainer: {
     paddingHorizontal: 16,

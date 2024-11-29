@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
-import { ActivityIndicator } from "react-native-paper";
 import { fetchHighlightById, Highlight } from "@/services/api/highlightService";
-import { Ionicons } from "@expo/vector-icons"; // Importar íconos
 
 type RouteParams = {
   params: {
@@ -25,7 +23,6 @@ export default function HighlightDetail() {
     }
   }, [id]);
 
-  // Obtener los detalles del highlight
   const getHighlightDetails = async () => {
     try {
       setLoading(true);
@@ -37,10 +34,6 @@ export default function HighlightDetail() {
       setLoading(false);
     }
   };
-
-  if (!id) {
-    return <Text style={styles.errorText}>ID no encontrado</Text>;
-  }
 
   if (loading) {
     return (
@@ -61,124 +54,82 @@ export default function HighlightDetail() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        {/* Reproductor de video con WebView */}
-        <View style={styles.videoContainer}>
-          <WebView
-            source={{ uri: highlight.vimeoUrl }}
-            style={styles.video}
-            allowsFullscreenVideo
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled
-            domStorageEnabled
-            onLoadEnd={() => setLoading(false)}
-          />
+    <View style={styles.container}>
+      <WebView
+        source={{ uri: highlight.vimeoUrl }}
+        style={styles.video}
+        allowsFullscreenVideo
+        mediaPlaybackRequiresUserAction={false}
+        javaScriptEnabled
+        domStorageEnabled
+      />
+
+      {/* Mostrar información solo cuando el video está en pausa */}
+        <View style={styles.topOverlay}>
+          <Text style={styles.title}>{highlight.name}</Text>
+          <Text style={styles.eventName}>
+            {highlight.eventId
+              ? `Evento: ${highlight.eventId.name}`
+              : "Evento no especificado"}
+          </Text>
+          <Text style={styles.description}>{highlight.description}</Text>
         </View>
-
-        {/* Nombre del Highlight */}
-        <Text style={styles.title}>{highlight.name}</Text>
-
-        {/* Nombre del evento */}
-        <Text style={styles.eventName}>
-          {highlight.eventId ? `Evento: ${highlight.eventId.name}` : "Evento no especificado"}
-        </Text>
-
-        {/* Descripción del Highlight */}
-        <Text style={styles.description}>{highlight.description}</Text>
-
-        {/* Botón para compartir */}
-        {/* <TouchableOpacity style={styles.shareButton} onPress={() => alert("Compartir!")}>
-          <Ionicons name="share-social-outline" size={20} color="#FFF" />
-          <Text style={styles.shareButtonText}>Compartir</Text>
-        </TouchableOpacity> */}
-      </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    padding: 16,
-    backgroundColor: "#FFFFFF",
-  },
   container: {
     flex: 1,
-    alignItems: "center",
-  },
-  videoContainer: {
-    width: "100%",
-    height: 220,
-    borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 20,
     backgroundColor: "#000",
-    elevation: 5, // Sombra en Android
-    shadowColor: "#000", // Sombra en iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
   },
   video: {
     width: "100%",
     height: "100%",
   },
+  topOverlay: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.5)", 
+    paddingVertical: 8,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    textAlign: "left",
+    color: "white",
+    marginBottom: 8,
+  },
+  eventName: {
+    fontSize: 16,
+    color: "#00FFFF",
+    textAlign: "left",
+  },
+  description: {
+    fontSize: 14,
+    color: "white",
+    textAlign: "left",
+    lineHeight: 20,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-    color: "#004D73",
-    paddingHorizontal: 12,
-  },
-  eventName: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 16,
-    color: "#0088CC",
-    textAlign: "center",
-  },
-  description: {
-    fontSize: 16,
-    color: "#444",
-    lineHeight: 24,
-    textAlign: "justify",
-    paddingHorizontal: 8,
+    backgroundColor: "#000",
   },
   errorText: {
     fontSize: 18,
     color: "#B22222",
     textAlign: "center",
-    marginTop: 20,
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  shareButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: "#004D73",
-    borderRadius: 8,
-    marginTop: 20,
-    elevation: 2, // Sombra en Android
-    shadowColor: "#000", // Sombra en iOS
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
-  shareButtonText: {
-    color: "#FFF",
-    fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 8,
+    backgroundColor: "#000",
   },
 });
