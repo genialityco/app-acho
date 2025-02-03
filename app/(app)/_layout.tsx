@@ -16,12 +16,11 @@ import { useOrganization } from "@/context/OrganizationContext";
 import { Survey, searchSurveys } from "@/services/api/surveyService";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import { Platform } from "react-native";
 import { updateExpoPushToken } from "@/services/api/userService";
-import { createNotification } from "@/services/api/notificationService";
 import { useNotifications } from "@/context/NotificationsContext";
 import Constants from "expo-constants";
 import { ActivityIndicator } from "react-native-paper";
+import * as SplashScreen from "expo-splash-screen";
 
 const { width } = Dimensions.get("window");
 
@@ -37,6 +36,7 @@ export default function ProtectedLayout() {
   const notificationListener = useRef<Notifications.Subscription | null>(null);
   const responseListener = useRef<Notifications.Subscription | null>(null);
   const { addNotification, markAsRead } = useNotifications();
+  const [isAppReady, setIsAppReady] = useState(false);
   const router = useRouter();
 
   const fetchSurveys = async () => {
@@ -75,12 +75,6 @@ export default function ProtectedLayout() {
       const projectId =
         Constants?.expoConfig?.extra?.eas?.projectId ??
         Constants?.easConfig?.projectId;
-      if (!projectId) {
-        Alert.alert(
-          "Error",
-          "No se pudieron dar permisos para las notificaciones push."
-        );
-      }
       const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
           projectId: projectId
@@ -88,7 +82,6 @@ export default function ProtectedLayout() {
             : "7b771362-c331-49ce-94fd-f43d171a309e",
         })
       ).data;
-      console.log("Expo Push Token obtenido: ", pushTokenString);
 
       if (pushTokenString && userId) {
         await updateExpoPushToken(userId, pushTokenString);
@@ -100,34 +93,35 @@ export default function ProtectedLayout() {
   };
 
   useEffect(() => {
-    if (userId && organization) {
-      registerAndSavePushToken();
+    async function prepareApp() {
+      try {
+        // Evita que la splash screen se oculte automáticamente
+        await SplashScreen.preventAutoHideAsync();
 
+        if (userId && organization) {
+          await fetchSurveys();
+          await registerAndSavePushToken();
+        }
+
+        // Simula una pequeña espera para garantizar transiciones suaves
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      } catch (e) {
+        console.error("Error durante la inicialización de la app:", e);
+      } finally {
+        setIsAppReady(true);
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepareApp();
+  }, [userId, organization]);
+
+  useEffect(() => {
+    if (userId && organization) {
       // Listener para notificaciones entrantes
       notificationListener.current =
-        Notifications.addNotificationReceivedListener(async (notification) => {
+        Notifications.addNotificationReceivedListener((notification) => {
           console.log("Notificación recibida: ", notification);
-
-          // if (userId) {
-          //   const notificationData = {
-          //     userId,
-          //     title: notification.request.content.title ?? "Nueva notificación",
-          //     body: notification.request.content.body ?? "Sin contenido",
-          //     data: notification.request.content.data,
-          //     isRead: false,
-          //   };
-
-          //   try {
-          //     const response = await createNotification(notificationData);
-          //     if (response) {
-          //       addNotification(response);
-          //       setCurrentNotification(response);
-          //       setShowNotificationModal(true);
-          //     }
-          //   } catch (error) {
-          //     console.error("Error al guardar la notificación:", error);
-          //   }
-          // }
         });
 
       // Listener para respuestas a notificaciones
@@ -162,8 +156,6 @@ export default function ProtectedLayout() {
       setDrawerVisible(isDrawerVisible);
     });
 
-    fetchSurveys();
-
     return () => unsubscribe();
   }, []);
 
@@ -173,7 +165,6 @@ export default function ProtectedLayout() {
         markAsRead(currentNotification._id);
         setShowNotificationModal(false);
 
-        // Redirigir si hay una ruta en la data
         if (currentNotification.data?.route) {
           router.push(currentNotification.data.route);
         }
@@ -185,7 +176,7 @@ export default function ProtectedLayout() {
     }
   };
 
-  if (isLoading) {
+  if (!isAppReady || isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator animating={true} size="large" />
@@ -208,7 +199,6 @@ export default function ProtectedLayout() {
         />
       )}
 
-      {/* Modal para mostrar notificaciones */}
       <Modal
         animationType="slide"
         transparent={true}

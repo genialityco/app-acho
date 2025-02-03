@@ -7,12 +7,13 @@ import { fetchHighlightById, Highlight } from "@/services/api/highlightService";
 type RouteParams = {
   params: {
     id: string;
+    time?: string;
   };
 };
 
 export default function HighlightDetail() {
   const route = useRoute<RouteProp<RouteParams, "params">>();
-  const { id } = route.params;
+  const { id, time } = route.params;
 
   const [highlight, setHighlight] = useState<Highlight | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,10 +54,15 @@ export default function HighlightDetail() {
     );
   }
 
+    // Generamos la URL del video con el tiempo
+    const videoUrl = time
+    ? `${highlight.vimeoUrl}?autoplay=1#t=${time.replace(":", "m").replace(":", "s")}`
+    : highlight.vimeoUrl + "?autoplay=1";
+
   return (
     <View style={styles.container}>
       <WebView
-        source={{ uri: highlight.vimeoUrl }}
+        source={{ uri: videoUrl }}
         style={styles.video}
         allowsFullscreenVideo
         mediaPlaybackRequiresUserAction={false}

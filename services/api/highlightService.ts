@@ -8,6 +8,7 @@ export interface Highlight {
   description: string;
   imageUrl: string;
   vimeoUrl: string;
+  transcription: string;
   createdAt?: string;
   updatedAt?: string;
 }

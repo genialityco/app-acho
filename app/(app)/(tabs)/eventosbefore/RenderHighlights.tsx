@@ -17,7 +17,7 @@ export default function RenderHighlights() {
   const { organization } = useOrganization();
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [filteredHighlights, setFilteredHighlights] = useState<Highlight[]>([]);
-  const [searchText, setSearchText] = useState<string>(""); // Estado para la búsqueda
+  const [searchText, setSearchText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -48,17 +48,47 @@ export default function RenderHighlights() {
     }
   };
 
-  // Función para manejar el cambio en el texto de búsqueda
+  const formatTimeForVimeo = (time: string) => {
+    const [hours, minutes, seconds] = time.split(":");
+    const secondsWithoutMs = Math.floor(parseFloat(seconds));
+    if (hours === "00") {
+      return `${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
+    }
+    return `${parseInt(hours, 10)}h${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
+  };
+  
+
   const handleSearch = (text: string) => {
     setSearchText(text);
 
     if (text.trim() === "") {
       setFilteredHighlights(highlights);
     } else {
-      const filtered = highlights.filter((highlight) =>
-        highlight.name.toLowerCase().includes(text.toLowerCase())
-      );
-      setFilteredHighlights(filtered);
+      const filtered = highlights
+        .map((highlight) => {
+          let matches: string[] = [];
+          if (highlight.transcription) {
+            const lines = highlight.transcription.split("\n");
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].toLowerCase().includes(text.toLowerCase())) {
+                const timeMatch = lines[i - 1]?.match(
+                  /(\d{2}:\d{2}:\d{2}\.\d{3})/
+                );
+                if (timeMatch) {
+                  matches.push(formatTimeForVimeo(timeMatch[1]));
+                }
+              }
+            }
+          }
+          const isMatch =
+            highlight.name.toLowerCase().includes(text.toLowerCase()) ||
+            matches.length > 0;
+          return isMatch
+            ? { ...highlight, transcriptionMatches: matches }
+            : null;
+        })
+        .filter((item) => item !== null);
+      setFilteredHighlights(filtered as Highlight[]);
     }
   };
 
@@ -75,6 +105,24 @@ export default function RenderHighlights() {
       <View style={styles.textOverlay}>
         <Text style={styles.text}>{item.name}</Text>
         <Text style={styles.textEvent}>{item.eventId.name}</Text>
+        {item.transcriptionMatches?.length > 0 && (
+          <View style={styles.matchesContainer}>
+            {item.transcriptionMatches.map((time, index) => (
+              <TouchableOpacity
+                key={index}
+                onPress={() => {
+                  router.push(
+                    `/eventosbefore/HighlightDetail?id=${item._id}&time=${time}`
+                  );
+                }}
+              >
+                <Text key={index} style={styles.matchText}>
+                  {`Coincidencia en ${time}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -113,7 +161,7 @@ export default function RenderHighlights() {
           keyExtractor={(item) => item._id}
           numColumns={2}
           columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={[styles.container, { paddingBottom: 150 }]} 
+          contentContainerStyle={[styles.container, { paddingBottom: 150 }]}
           showsVerticalScrollIndicator={true}
         />
       )}
@@ -174,10 +222,17 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     height: 40,
-    borderColor: "#ccc",
+    borderColor: "gray",
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 10,
     marginBottom: 10,
+  },
+  matchesContainer: {
+    marginTop: 5,
+  },
+  matchText: {
+    color: "#ff9800",
+    fontSize: 13,
   },
 });

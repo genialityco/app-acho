@@ -4,15 +4,15 @@ import { Stack } from "expo-router";
 import { PaperProvider } from "react-native-paper";
 import theme from "@/theme";
 import { AuthProvider } from "@/context/AuthContext";
-import * as SplashScreen from "expo-splash-screen";
+// import * as SplashScreen from "expo-splash-screen";
 import { OrganizationProvider } from "@/context/OrganizationContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
 
 export default function RootLayout() {
   // Evitar que el splash screen se cierre automáticamente
-  React.useEffect(() => {
-    SplashScreen.preventAutoHideAsync();
-  }, []);
+  // React.useEffect(() => {
+  //   SplashScreen.preventAutoHideAsync();
+  // }, []);
 
   return (
     <OrganizationProvider>
