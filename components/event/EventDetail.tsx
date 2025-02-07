@@ -7,9 +7,19 @@ import {
   ScrollView,
   Platform,
   Linking,
+  Alert,
+  Clipboard,
 } from "react-native";
 import { Link, router, useLocalSearchParams } from "expo-router";
-import { Button, FAB, ActivityIndicator } from "react-native-paper";
+import {
+  Button,
+  FAB,
+  ActivityIndicator,
+  Icon,
+  IconButton,
+  Portal,
+  Modal,
+} from "react-native-paper";
 import {
   createAttendee,
   deleteAttendee,
@@ -20,6 +30,7 @@ import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
 
 interface Event {
+  price: any;
   _id: number;
   name: string;
   description: string;
@@ -36,6 +47,8 @@ interface Event {
     certificate: boolean;
     posters: boolean;
   };
+  isExternalRegistration: boolean;
+  externalRegistrationUrl: string;
 }
 
 export default function EventDetail({ tab }: { tab: string }) {
@@ -46,6 +59,7 @@ export default function EventDetail({ tab }: { tab: string }) {
   const [loading, setLoading] = useState(true);
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const getAttendeeData = async (eventId: any) => {
     const filters = { userId, eventId };
@@ -79,6 +93,33 @@ export default function EventDetail({ tab }: { tab: string }) {
 
   const handleRegister = async () => {
     setIsLoading(true);
+    if (isMemberActive === "false") {
+      setShowModal(true);
+      setIsLoading(false);
+      return;
+    }
+
+    if (event?.isExternalRegistration && event?.externalRegistrationUrl) {
+      try {
+        const supported = await Linking.canOpenURL(
+          event.externalRegistrationUrl
+        );
+        if (supported) {
+          await Linking.openURL(event.externalRegistrationUrl);
+        } else {
+          Alert.alert("Error", "No se pudo abrir el enlace de inscripción.");
+        }
+      } catch (error) {
+        console.error("Error al abrir el enlace externo:", error);
+        Alert.alert(
+          "Error",
+          "Ocurrió un problema al intentar abrir el enlace."
+        );
+      }
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const attendeeData = {
         userId,
@@ -110,6 +151,16 @@ export default function EventDetail({ tab }: { tab: string }) {
       console.error("Error unregistering attendee:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCopyUrl = () => {
+    if (event?.externalRegistrationUrl) {
+      Clipboard.setString(event.externalRegistrationUrl);
+      Alert.alert(
+        "Copiado",
+        "El enlace de inscripción ha sido copiado al portapapeles."
+      );
     }
   };
 
@@ -160,7 +211,7 @@ export default function EventDetail({ tab }: { tab: string }) {
       });
     } else if (Platform.OS === "ios") {
       // URL para iOS usando `calshow`
-      const url = `calshow:${startDate / 1000}`; 
+      const url = `calshow:${startDate / 1000}`;
       Linking.openURL(url).catch((err) => {
         console.error("Error al abrir el calendario en iOS:", err);
         alert("No se pudo abrir el calendario.");
@@ -174,6 +225,14 @@ export default function EventDetail({ tab }: { tab: string }) {
   const formatDateForCalendar = (timestamp: number): string => {
     const date = new Date(timestamp);
     return date.toISOString().replace(/[-:]|\.\d{3}/g, "");
+  };
+
+  const openPaymentLink = () => {
+    Linking.openURL("https://zonapagos.com/t_acho");
+  };
+
+  const openComoSerMiembroLink = () => {
+    Linking.openURL("https://acho.com.co/como-ser-miembro-acho/");
   };
 
   if (loading) {
@@ -296,8 +355,16 @@ export default function EventDetail({ tab }: { tab: string }) {
           </View>
         </ScrollView>
 
-        {tab === "(index)" && isMemberActive === "true" && (
+        {tab === "(index)" && (
           <View style={styles.fixedButtonContainer}>
+            {event?.isExternalRegistration &&
+              event?.externalRegistrationUrl && (
+                <IconButton
+                  icon="content-copy"
+                  size={24}
+                  onPress={handleCopyUrl}
+                />
+              )}
             {!isRegistered ? (
               <Button
                 mode="contained"
@@ -306,7 +373,9 @@ export default function EventDetail({ tab }: { tab: string }) {
                 loading={isLoading}
                 disabled={isLoading}
               >
-                Inscribirmee
+                {event.isExternalRegistration
+                  ? "Pre inscribirme"
+                  : "Inscribirme"}
               </Button>
             ) : (
               <Button
@@ -328,6 +397,37 @@ export default function EventDetail({ tab }: { tab: string }) {
             </Button>
           </View>
         )}
+        <Portal>
+          <Modal
+            visible={showModal}
+            onDismiss={() => setShowModal(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Text style={styles.modalText}>
+              Inscripción a evento: {event?.name}
+            </Text>
+            <Text style={styles.modalText}>Valor miembros: Gratuito</Text>
+            <Text style={styles.modalText}>
+              No miembros: $ {event?.price?.toLocaleString("es-ES")}
+            </Text>
+            <Text
+              style={[styles.modalLink, { color: "blue" }]}
+              onPress={openComoSerMiembroLink}
+            >
+              ¿Cómo ser miembro de la ACHO?
+            </Text>
+            <Button
+              mode="contained"
+              onPress={openPaymentLink}
+              style={{ marginBottom: 5 }}
+            >
+              Pagar
+            </Button>
+            <Button mode="outlined" onPress={() => setShowModal(false)}>
+              Cerrar
+            </Button>
+          </Modal>
+        </Portal>
       </View>
     </ImageBackground>
   );
@@ -417,5 +517,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  // Modal styles
+  modalContainer: {
+    backgroundColor: "white",
+    padding: 20,
+    margin: 20,
+    borderRadius: 8,
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalLink: {
+    textAlign: "center",
+    marginBottom: 10,
+    textDecorationLine: "underline",
   },
 });

@@ -27,16 +27,18 @@ interface RenderEventsProps {
 export default function RenderEvents({ events }: RenderEventsProps) {
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     const now = dayjs();
-    // Filtrar los eventos que son anteriores a la fecha actual
-    const filteredEvents = events.filter((event) =>
-      dayjs(event.startDate).isBefore(now)
-    );
+    // Filtrar eventos pasados y ordenarlos de más recientes a más antiguos
+    const filteredEvents = events
+      .filter((event) => dayjs(event.startDate).isBefore(now))
+      .sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf());
+  
     setPastEvents(filteredEvents);
     setLoading(false);
   }, [events]);
+  
 
   const formatDate = (
     startDate: string | number | Date | dayjs.Dayjs | null | undefined,

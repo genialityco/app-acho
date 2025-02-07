@@ -40,8 +40,8 @@ export default function EventosScreen() {
   const [memberId, setMemberId] = useState<string | null>(null);
   const [isMemberActive, setIsMemberActive] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  // const [showModal, setShowModal] = useState(false);
+  // const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { organization } = useContext(OrganizationContext);
   const { userId, signOut } = useAuth();
@@ -98,16 +98,18 @@ export default function EventosScreen() {
   // Función para filtrar los eventos próximos
   const filterUpcomingEvents = (events: any[]) => {
     const today = new Date();
-    return events.filter(
-      (event: { startDate: string | number | Date; endDate: string | number | Date }) => {
-        const startDate = new Date(event.startDate).getTime();
-        const endDate = new Date(event.endDate).getTime();
-  
-        return startDate <= today.getTime() && endDate >= today.getTime();
-      }
-    );
+    today.setHours(0, 0, 0, 0);
+    const now = today.getTime();
+
+    return events.filter((event) => {
+      const startDate = new Date(
+        event.startDate?.$date || event.startDate
+      ).getTime();
+      const endDate = new Date(event.endDate?.$date || event.endDate).getTime();
+
+      return startDate >= now || (startDate <= now && endDate >= now);
+    });
   };
-  
 
   // Función para manejar cuando no hay asistentes registrados
   const handleNoAttendees = async (
@@ -167,15 +169,18 @@ export default function EventosScreen() {
     return registeredEvents.includes(eventId);
   };
 
-  const handleRegister = (event: Event) => {
-    if (isMemberActive) {
-      router.push(
-        `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
-      );
-    } else {
-      setSelectedEvent(event);
-      setShowModal(true);
-    }
+  const handleClicCard = (event: Event) => {
+    // if (isMemberActive) {
+    //   router.push(
+    //     `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+    //   );
+    // } else {
+    //   setSelectedEvent(event);
+    //   setShowModal(true);
+    // }
+    router.push(
+      `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+    );
   };
 
   const formatDate = (
@@ -200,13 +205,13 @@ export default function EventosScreen() {
     }
   };
 
-  const openPaymentLink = () => {
-    Linking.openURL("https://zonapagos.com/t_acho");
-  };
+  // const openPaymentLink = () => {
+  //   Linking.openURL("https://zonapagos.com/t_acho");
+  // };
 
-  const openComoSerMiembroLink = () => {
-    Linking.openURL("https://acho.com.co/como-ser-miembro-acho/");
-  };
+  // const openComoSerMiembroLink = () => {
+  //   Linking.openURL("https://acho.com.co/como-ser-miembro-acho/");
+  // };
 
   if (loading) {
     return (
@@ -229,7 +234,11 @@ export default function EventosScreen() {
     <ScrollView contentContainerStyle={styles.scrollViewContent}>
       <View>
         {events.map((event) => (
-          <Card key={event._id} style={styles.eventCard}>
+          <Card
+            key={event._id}
+            style={styles.eventCard}
+            onPress={() => handleClicCard(event)}
+          >
             <View style={styles.row}>
               <View style={styles.contentColumnOne}>
                 <Image
@@ -249,7 +258,7 @@ export default function EventosScreen() {
                 <Text style={styles.eventDescription}>{event.description}</Text>
               </View>
             </View>
-
+            {/* 
             <View style={styles.actionsContainer}>
               {isRegistered(event._id) ? (
                 <Button mode="outlined" disabled compact>
@@ -270,7 +279,7 @@ export default function EventosScreen() {
               >
                 Detalles
               </Button>
-            </View>
+            </View> */}
           </Card>
         ))}
       </View>
@@ -291,7 +300,7 @@ export default function EventosScreen() {
         </Text>
       )}
 
-      <Portal>
+      {/* <Portal>
         <Modal
           visible={showModal}
           onDismiss={() => setShowModal(false)}
@@ -321,7 +330,7 @@ export default function EventosScreen() {
             Cerrar
           </Button>
         </Modal>
-      </Portal>
+      </Portal> */}
     </ScrollView>
   );
 }
