@@ -33,8 +33,11 @@ export default function RenderHighlights() {
       const filters = { organizationId: organization._id };
       const results = await searchHighlights(filters);
       if (results?.data?.items?.length > 0) {
-        setHighlights(results.data.items);
-        setFilteredHighlights(results.data.items);
+        const sortedHighlights = results.data.items.sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setHighlights(sortedHighlights);
+        setFilteredHighlights(sortedHighlights);
       } else {
         setHighlights([]);
         setFilteredHighlights([]);
@@ -54,9 +57,11 @@ export default function RenderHighlights() {
     if (hours === "00") {
       return `${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
     }
-    return `${parseInt(hours, 10)}h${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
+    return `${parseInt(hours, 10)}h${parseInt(
+      minutes,
+      10
+    )}m${secondsWithoutMs}s`;
   };
-  
 
   const handleSearch = (text: string) => {
     setSearchText(text);

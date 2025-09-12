@@ -10,7 +10,7 @@ import {
   ImageBackground,
   KeyboardAvoidingView,
 } from "react-native";
-import { ActivityIndicator, Button, TextInput } from "react-native-paper";
+import { ActivityIndicator, Button, TextInput, Checkbox } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
@@ -120,6 +120,7 @@ export default function RegisterScreen() {
       resizeMode="cover"
     >
       <View style={styles.overlay} />
+      
 
       <KeyboardAvoidingView
         style={styles.container}
@@ -133,6 +134,31 @@ export default function RegisterScreen() {
             .map((field) => {
               const isFieldRequired = field.required;
               const fieldError = fieldErrors[field.fieldName];
+
+              // Nuevo: Renderizar campo tipo checkbox
+              if (field.type === "checkbox") {
+                return (
+                  <View
+                    key={field.fieldName}
+                    style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+                  >
+                    <Checkbox
+                      status={formData[field.fieldName] ? "checked" : "unchecked"}
+                      onPress={() =>
+                        handleInputChange(
+                          field.fieldName,
+                          formData[field.fieldName] ? "" : "true"
+                        )
+                      }
+                    />
+                    <Text>
+                      {field.label}
+                      {isFieldRequired && <Text style={styles.asterisk}>*</Text>}
+                    </Text>
+                  </View>
+                );
+              }
+
               if (field.fieldName === "specialty" && field.type === "list") {
                 return Platform.OS === "ios" ? (
                   <View key={field.fieldName}>

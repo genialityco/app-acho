@@ -1,19 +1,19 @@
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import { View, ScrollView, StyleSheet } from "react-native";
-import { ActivityIndicator, Button, Text } from "react-native-paper"; // Mantengo solo los elementos necesarios
-import RenderHighlights from "./RenderHighlights";
+import { ActivityIndicator, Button, Text } from "react-native-paper";
+import RenderHighlights from "./RenderHighlights"; // Podrías renombrarlo a RenderMemorias si lo deseas
 import RenderEvents from "./RenderEvents";
 import { searchEvents } from "@/services/api/eventService";
 import { OrganizationContext } from "@/context/OrganizationContext";
 import { useFocusEffect } from "expo-router";
-import { set } from "firebase/database";
 
 export default function EventsBeforeScreen() {
-  const [activeTab, setActiveTab] = useState("highlights");
+  // Tab principal: "Eventos Anteriores" (pastEvents)
+  // Y el otro tab se renombra a "Memorias" (antes "Destacados")
+  const [activeTab, setActiveTab] = useState("pastEvents");
   const { organization } = useContext(OrganizationContext);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  // const [highlights, setHighlights] = useState([]);
   const [pastEvents, setPastEvents] = useState([]);
 
   const fetchEvents = async (page = 1) => {
@@ -27,10 +27,7 @@ export default function EventsBeforeScreen() {
       const eventResponse = await searchEvents(filters);
 
       const sortedEvents = eventResponse.data.items.sort(
-        (
-          a: { startDate: string | number | Date },
-          b: { startDate: string | number | Date }
-        ) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
       );
 
       setPastEvents(sortedEvents);
@@ -47,41 +44,7 @@ export default function EventsBeforeScreen() {
     }, [organization, currentPage])
   );
 
-  // Datos simulados para highlights y eventos anteriores
-  const highlights = [
-    {
-      id: "1",
-      title: "Conferencia de Tecnología",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_01.png"),
-    },
-    {
-      id: "2",
-      title: "Feria de Innovación",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_02.png"),
-    },
-    {
-      id: "3",
-      title: "Taller de Desarrollo Web",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_03.png"),
-    },
-    {
-      id: "4",
-      title: "Seminario de Inteligencia Artificial",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_04.png"),
-    },
-    {
-      id: "5",
-      title: "Congreso de Ciberseguridad",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_01.png"),
-    },
-    {
-      id: "6",
-      title: "Jornada de Emprendimiento",
-      image: require("../../../../assets/images/APP_ACHO_HIGHLISGT_02.png"),
-    },
-  ];
-
-  if(loading) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator animating size="large" />
@@ -89,19 +52,18 @@ export default function EventsBeforeScreen() {
       </View>
     );
   }
-  
 
   return (
     <View style={styles.container}>
-      {/* Botones superiores para Highlights y Eventos Anteriores */}
+      {/* Botones superiores para Memorias y Eventos Anteriores */}
       <View style={styles.tabContainer}>
         <Button
           style={styles.button}
-          mode={activeTab === "highlights" ? "contained" : "contained-tonal"}
+          mode={activeTab === "memorias" ? "contained" : "contained-tonal"}
           compact
-          onPress={() => setActiveTab("highlights")}
+          onPress={() => setActiveTab("memorias")}
         >
-          Destacados
+          Memorias
         </Button>
         <Button
           style={styles.button}
@@ -115,7 +77,7 @@ export default function EventsBeforeScreen() {
 
       {/* Contenido dinámico según el tab seleccionado */}
       <View style={styles.contentContainer}>
-        {activeTab === "highlights" ? (
+        {activeTab === "memorias" ? (
           <View style={styles.gridContainer}>
             <RenderHighlights />
           </View>

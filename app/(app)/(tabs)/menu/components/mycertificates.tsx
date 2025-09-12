@@ -58,9 +58,11 @@ export default function MyCertificatesScreen() {
   };
 
   const handleViewOrDownload = (certificate: Certificate) => {
-    const certificateUrl = `https://gen-certificados.netlify.app/certificate/${certificate.eventId}/${userId}`;
+    const eventId = typeof certificate.eventId === "object" ? certificate.eventId._id : certificate.eventId;
+    const certificateUrl = `https://gen-certificados.netlify.app/certificate/${eventId}/${userId}`;
     Linking.openURL(certificateUrl);
   };
+  
 
   const goBackToList = () => {
     setSelectedCertificate(null);

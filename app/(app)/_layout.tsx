@@ -21,6 +21,9 @@ import { useNotifications } from "@/context/NotificationsContext";
 import Constants from "expo-constants";
 import { ActivityIndicator } from "react-native-paper";
 import * as SplashScreen from "expo-splash-screen";
+import * as Updates from "expo-updates";
+import * as Application from "expo-application";
+import { Linking } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -91,6 +94,97 @@ export default function ProtectedLayout() {
       console.error("Error al obtener o guardar el expoPushToken:", error);
     }
   };
+
+  const checkForUpdates = async () => {
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          "Actualización disponible",
+          "Se ha encontrado una actualización. Se aplicará ahora.",
+          [
+            {
+              text: "Aceptar",
+              onPress: async () => await Updates.reloadAsync(),
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Error verificando actualizaciones OTA:", error);
+    }
+  };
+
+  const cleanIOSVersion = (versionString: string) => {
+    const match = versionString.match(/(\d+\.\d+\.\d+)/); 
+    return match ? match[1] : "0.0.0";
+  };
+  
+
+  const compareVersions = (v1: string, v2: string): number => {
+    const v1Parts = v1.split(".").map(Number);
+    const v2Parts = v2.split(".").map(Number);
+  
+    for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+      const num1 = v1Parts[i] || 0;
+      const num2 = v2Parts[i] || 0;
+  
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+    return 0;
+  };
+  
+  const checkStoreVersion = async () => {
+    try {
+      let storeUrl = "";
+      let latestVersion = "0.0.0";
+  
+      if (Device.osName === "iOS") {
+        const response = await fetch(
+          `https://itunes.apple.com/lookup?bundleId=${Application.applicationId}`
+        );
+        const data = await response.json();
+        latestVersion = cleanIOSVersion(data.results[0]?.version ?? "0.0.0");
+        storeUrl = data.results[0]?.trackViewUrl;
+      } else if (Device.osName === "Android") {
+        storeUrl = `https://play.google.com/store/apps/details?id=${Application.applicationId}`;
+        latestVersion = "1.0.8"
+      }
+  
+      // Obtenemos la versión actual desde OTA o la versión nativa
+      let currentVersion = Updates.runtimeVersion || Application.nativeApplicationVersion || "0.0.0";
+  
+      // Si `Updates.runtimeVersion` es un hash, usamos `Application.nativeApplicationVersion`
+      if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+        currentVersion = Application.nativeApplicationVersion || "0.0.0";
+      }
+  
+      console.log(`📢 Versión instalada: ${currentVersion}, Versión en la tienda: ${latestVersion}`);
+  
+      // Comparar versiones numéricamente
+      if (compareVersions(currentVersion, latestVersion) < 0) {
+        Alert.alert(
+          "Nueva versión disponible",
+          "Debes actualizar la aplicación para continuar.",
+          [{ text: "Actualizar", onPress: () => Linking.openURL(storeUrl) }]
+        );
+      }
+    } catch (error) {
+      console.error("❌ Error verificando la versión en la tienda:", error);
+    }
+  };
+  
+  useEffect(() => {
+    const verifyAppVersion = async () => {
+      await checkForUpdates();
+      await checkStoreVersion();
+    };
+  
+    verifyAppVersion();
+  }, []);
+  
 
   useEffect(() => {
     async function prepareApp() {

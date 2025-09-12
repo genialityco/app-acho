@@ -16,6 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Attendee, searchAttendees } from "@/services/api/attendeeService";
 import {
   deleteUser,
+  fetchUserById,
   searchUsers,
   updateUser,
 } from "@/services/api/userService";
@@ -36,14 +37,17 @@ export default function MenuScreen() {
     try {
       const filters = { firebaseUid: uid };
       const response = await searchUsers(filters);
+
       if (response.status === "success") {
         const member = await searchMembers({
           userId: response.data.items[0]._id,
         });
         setUser(member.data.items[0]);
 
+        const responseUser = await fetchUserById(member.data.items[0].userId);
+
         // Verifica si el usuario ya tiene un expoPushToken
-        setIsPushEnabled(!!member.data.items[0]?.expoPushToken);
+        setIsPushEnabled(!!responseUser.data.expoPushToken);
       }
     } catch (error) {
       console.error(error);
@@ -250,10 +254,14 @@ export default function MenuScreen() {
           {/* Menú de opciones */}
           <View style={styles.menuItems}>
             {/* Toggle para notificaciones */}
-            {/* <View style={styles.menuItemToggle}>
+            <View style={styles.menuItemToggle}>
               <View style={{ flexDirection: "row", alignItems: "center" }}>
                 <Ionicons name="notifications" size={24} color="white" />
-                <Text style={styles.menuItemText}>Notificaciones Push</Text>
+                <Text style={styles.menuItemText}>
+                  {isPushEnabled
+                    ? "Notificaciones activadas"
+                    : "Activar notificaciones"}
+                </Text>
               </View>
               <Switch
                 value={isPushEnabled}
@@ -261,7 +269,7 @@ export default function MenuScreen() {
                 trackColor={{ false: "#767577", true: "#81b0ff" }}
                 thumbColor={isPushEnabled ? "#f5dd4b" : "#f4f3f4"}
               />
-            </View> */}
+            </View>
 
             <TouchableOpacity
               style={styles.menuItem}
@@ -337,8 +345,11 @@ export default function MenuScreen() {
                 No se pudo generar el código QR.
               </Text>
             )}
-            <Button mode="contained-tonal" onPress={() => setIsQrModalVisible(false)}>
-            Cerrar
+            <Button
+              mode="contained-tonal"
+              onPress={() => setIsQrModalVisible(false)}
+            >
+              Cerrar
             </Button>
           </View>
         </View>

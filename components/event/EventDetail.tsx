@@ -60,6 +60,8 @@ export default function EventDetail({ tab }: { tab: string }) {
   const [isRegistered, setIsRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showUnregisterModal, setShowUnregisterModal] = useState(false);
 
   const getAttendeeData = async (eventId: any) => {
     const filters = { userId, eventId };
@@ -93,13 +95,17 @@ export default function EventDetail({ tab }: { tab: string }) {
 
   const handleRegister = async () => {
     setIsLoading(true);
-    if (isMemberActive === "false") {
+    if (isMemberActive === "false" && !event?.isExternalRegistration) {
       setShowModal(true);
       setIsLoading(false);
       return;
     }
 
-    if (event?.isExternalRegistration && event?.externalRegistrationUrl) {
+    if (
+      event?.isExternalRegistration &&
+      event?.externalRegistrationUrl &&
+      isMemberActive === "false"
+    ) {
       try {
         const supported = await Linking.canOpenURL(
           event.externalRegistrationUrl
@@ -132,8 +138,24 @@ export default function EventDetail({ tab }: { tab: string }) {
 
       // Consultar nuevamente los datos de inscripción
       getAttendeeData(event?._id);
+
+      setShowSuccessModal(true);
     } catch (error) {
       console.error("Error registering attendee:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConfirmUnregister = async () => {
+    setIsLoading(true);
+    setShowUnregisterModal(false);
+    try {
+      await deleteAttendee(attendee._id);
+      setIsRegistered(false);
+      getAttendeeData(event?._id);
+    } catch (error) {
+      console.error("Error unregistering attendee:", error);
     } finally {
       setIsLoading(false);
     }
@@ -263,10 +285,6 @@ export default function EventDetail({ tab }: { tab: string }) {
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.content}>
             <Text style={styles.title}>{event?.name}</Text>
-            <Text style={styles.date}>{event?.description}</Text>
-            <Text style={styles.date}>
-              {formatDate(event?.startDate, event?.endDate)}
-            </Text>
 
             <View style={styles.container}>
               <View style={styles.buttonRow}>
@@ -352,6 +370,11 @@ export default function EventDetail({ tab }: { tab: string }) {
                 )}
               </View>
             </View>
+
+            <Text style={styles.date}>{event?.description}</Text>
+            <Text style={styles.date}>
+              {formatDate(event?.startDate, event?.endDate)}
+            </Text>
           </View>
         </ScrollView>
 
@@ -373,7 +396,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                 loading={isLoading}
                 disabled={isLoading}
               >
-                {event.isExternalRegistration
+                {event.isExternalRegistration && isMemberActive === "false"
                   ? "Pre inscribirme"
                   : "Inscribirme"}
               </Button>
@@ -381,7 +404,7 @@ export default function EventDetail({ tab }: { tab: string }) {
               <Button
                 mode="contained"
                 style={styles.unregisterButton}
-                onPress={handleUnregister}
+                onPress={() => setShowUnregisterModal(true)}
                 loading={isLoading}
                 disabled={isLoading}
               >
@@ -428,6 +451,54 @@ export default function EventDetail({ tab }: { tab: string }) {
             </Button>
           </Modal>
         </Portal>
+        <Portal>
+          <Modal
+            visible={showSuccessModal}
+            onDismiss={() => setShowSuccessModal(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Text style={styles.modalText}>🎉 ¡Inscripción exitosa! 🎉</Text>
+            <Text style={styles.modalText}>
+              Te esperamos el día del evento:{" "}
+              {formatDate(event?.startDate, event?.endDate)}
+            </Text>
+            <Text style={styles.modalText}>
+              Recuerda agregarlo a tu calendario.
+            </Text>
+            <Button mode="contained" onPress={() => setShowSuccessModal(false)}>
+              ¡Entendido!
+            </Button>
+          </Modal>
+        </Portal>
+
+        <Portal>
+          <Modal
+            visible={showUnregisterModal}
+            onDismiss={() => setShowUnregisterModal(false)}
+            contentContainerStyle={styles.modalContainer}
+          >
+            <Text style={styles.modalText}>❌ Cancelar inscripción</Text>
+            <Text style={styles.modalText}>
+              ¿Estás seguro de que deseas cancelar tu inscripción en el evento{" "}
+              <Text style={{ fontWeight: "bold" }}>{event?.name}</Text>?
+            </Text>
+            <Button
+              mode="contained"
+              onPress={handleConfirmUnregister}
+              loading={isLoading}
+              disabled={isLoading}
+              style={{ marginBottom: 10 }}
+            >
+              Sí, cancelar inscripción
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={() => setShowUnregisterModal(false)}
+            >
+              No, mantener inscripción
+            </Button>
+          </Modal>
+        </Portal>
       </View>
     </ImageBackground>
   );
@@ -470,7 +541,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     alignContent: "center",
     padding: 16,
-    marginTop: 20,
   },
   buttonRow: {
     flexDirection: "row",
@@ -478,7 +548,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignContent: "center",
     alignItems: "center",
-    marginBottom: 50,
+    marginBottom: 10,
   },
   buttonWrapper: {
     alignItems: "center",

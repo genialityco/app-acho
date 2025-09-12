@@ -103,7 +103,7 @@ function ACHOInfoScreen() {
               Nuestro Propósito
             </Text>
             <Text variant="labelSmall" style={styles.centerText}>
-              Junta directiva (2022 - 2024) Promover la calidad en la
+              Junta directiva (2022 - 2026) Promover la calidad en la
               prevención, diagnóstico, rehabilitación y tratamiento del cáncer y
               enfermedades hematológicas en Colombia; además de la investigación
               en hematología y oncología. Estamos comprometidos con nuestros
@@ -117,25 +117,25 @@ function ACHOInfoScreen() {
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.subtitle}>
-              Junta Directiva (2022 - 2024)
+              Junta Directiva (2022 - 2026)
             </Text>
             <ThemedView style={styles.divider} />
             <View style={styles.presidentContainer}>
               <Image
                 source={{
-                  uri: "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/PRESIDENTE.png?updatedAt=1728486031371",
+                  uri: "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/PRESIDENTA.png?alt=media&token=74cbf7fb-a0c1-484c-b13c-be3b168168a3",
                 }}
                 style={styles.presidentImage}
               />
-              <ThemedText style={styles.sectionTextBold}>PRESIDENTE</ThemedText>
+              <ThemedText style={styles.sectionTextBold}>PRESIDENTA</ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Ricardo Elías Brugés Maya
+                Dra. Claudia Lucia Sossa Melo
               </ThemedText>
             </View>
             <View style={styles.presidentContainer}>
               <Image
                 source={{
-                  uri: "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/VICEPRESIDENTE.png?updatedAt=1728486026769",
+                  uri: "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/FOTO_02.png?alt=media&token=b299adda-30c9-443e-a3c8-15b68a51bc35",
                 }}
                 style={styles.presidentImage}
               />
@@ -143,37 +143,67 @@ function ACHOInfoScreen() {
                 VICEPRESIDENTE
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dra. Claudia Lucía Sossa Melo
+                Dr. Dr. William Armando Mantilla Durán
               </ThemedText>
             </View>
             <View style={styles.presidentContainer}>
-              <ThemedText style={styles.sectionTextBold}>TESORERO</ThemedText>
-              <ThemedText style={styles.sectionText}>
-                Dr. Mario Fernando Quintero Ocaris
-              </ThemedText>
-            </View>
-            <View style={styles.presidentContainer}>
+            <Image
+                source={{
+                  uri: "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/FOTO_01.png?alt=media&token=78f93db9-f303-4913-9fc1-4fe8a41910af",
+                }}
+                style={styles.presidentImage}
+              />
               <ThemedText style={styles.sectionTextBold}>SECRETARIO</ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. William Armando Mantilla Durán
+                Dr. Jair Figueroa Emiliani
+              </ThemedText>
+            </View>
+            <View style={styles.presidentContainer}>
+              <Image
+                source={{
+                  uri: "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/FOTO_03.png?alt=media&token=12f196b5-8ba7-4d31-a09c-ae7972d96617",
+                }}
+                style={styles.presidentImage}
+              />
+              <ThemedText style={styles.sectionTextBold}>TESORERO</ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dr. Kelman Hanael Ojeda Rodriguez
               </ThemedText>
             </View>
             <View style={styles.presidentContainer}>
               <ThemedText style={styles.sectionTextBold}>VOCALES</ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Ray Antonio Manneh Kopp
+                Dr. Ricardo Elías Brugés Maya
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dra. Laura Bernal Vaca
+                Dr. Jaime Alberto González Díaz
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Néstor Eduardo Llinás Quintero
+                Dra. Isabel Matilde Chinchia Arias
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Diego Emilio Lopera Cortés
+                Dr. Juan Alejandro Ospina Idárraga
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Jair Figueroa Emiliani
+                Dr. Diego Andrés Gómez Abreo
+              </ThemedText>
+            </View>
+            <View style={styles.presidentContainer}>
+              <ThemedText style={styles.sectionTextBold}>SUPLENTES</ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dr. Diego Mauricio González Ramírez
+              </ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dr. Mario Ernesto Correa Correa
+              </ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dra. Lina Maria Gaviria Jaramillo
+              </ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dr. Kenny Mauricio Gálvez Cárdenas
+              </ThemedText>
+              <ThemedText style={styles.sectionText}>
+                Dr. Álvaro Enrique Osorio Franco
               </ThemedText>
             </View>
           </Card.Content>

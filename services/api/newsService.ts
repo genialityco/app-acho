@@ -6,9 +6,16 @@ export interface News {
   title: string;
   content: string;
   organizationId: string;
+  eventId?: string;
   featuredImage?: string;
   createdAt?: string;
   updatedAt?: string;
+  documents?: {
+    id: string;
+    name: string;
+    type: string;
+    url: string;
+  }[];
 }
 
 // Obtener todas las noticias
@@ -75,7 +82,7 @@ export const deleteNews = async (id: string): Promise<void> => {
 export const searchNews = async (filters: any): Promise<News[]> => {
   try {
     const response = await api.get("/news/search", { params: filters });
-    return response.data as News[]; 
+    return response.data as News[];
   } catch (error) {
     console.error("Error al buscar noticias con filtros:", error);
     throw error;

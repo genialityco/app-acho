@@ -258,9 +258,9 @@ export default function EventosScreen() {
                 <Text style={styles.eventDescription}>{event.description}</Text>
               </View>
             </View>
-            {/* 
+            
             <View style={styles.actionsContainer}>
-              {isRegistered(event._id) ? (
+              {/* {isRegistered(event._id) ? (
                 <Button mode="outlined" disabled compact>
                   Estás inscrito
                 </Button>
@@ -268,7 +268,7 @@ export default function EventosScreen() {
                 <Button mode="contained" onPress={() => handleRegister(event)}>
                   Inscribirse
                 </Button>
-              )}
+              )} */}
               <Button
                 mode="outlined"
                 onPress={() =>
@@ -279,7 +279,7 @@ export default function EventosScreen() {
               >
                 Detalles
               </Button>
-            </View> */}
+            </View>
           </Card>
         ))}
       </View>

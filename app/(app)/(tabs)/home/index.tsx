@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
   Pressable,
+  RefreshControl,
 } from "react-native";
 import {
   Text,
@@ -34,6 +35,7 @@ function HomeScreen() {
     null
   );
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const { userId } = useAuth();
   const { organization } = useOrganization();
@@ -84,8 +86,24 @@ function HomeScreen() {
     router.push(route);
   };
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchNews();
+    } catch (error) {
+      console.error("Error al refrescar:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       {/* Sección de notificaciones */}
       <TouchableOpacity
         onPress={() => setShowNotifications(!showNotifications)}
@@ -115,7 +133,7 @@ function HomeScreen() {
                   style={styles.notificationIcon}
                 />
                 <Text style={styles.notificationText}>
-                  {notification.title} - ver
+                  {notification.title} {notification.body} - ver
                 </Text>
               </TouchableOpacity>
             ))}
@@ -239,7 +257,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   notificationsScroll: {
-    maxHeight: 200, // Limita la altura para hacerla scrolleable
+    maxHeight: 280, // Limita la altura para hacerla scrolleable
   },
   notification: {
     flexDirection: "row",
