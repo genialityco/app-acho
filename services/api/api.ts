@@ -16,7 +16,7 @@ export interface SearchData<T> {
 // http://localhost:3000 local
 
 const api = axios.create({
-  baseURL: 'http://192.168.101.7:3000',
+  baseURL: 'https://lobster-app-uy9hx.ondigitalocean.app',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
