@@ -60,7 +60,7 @@ function HomeScreen() {
         current: pageNum
       };
       const response = await searchNews(filters);
-      const newNews = (response.data.items || []).flat();
+      const newNews = (response?.data?.items || []).flat();
 
       if (reset) {
         setNews(newNews);
