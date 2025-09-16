@@ -34,7 +34,7 @@ export default function RenderHighlights() {
       const results = await searchHighlights(filters);
       if (results?.data?.items?.length > 0) {
         const sortedHighlights = results.data.items.sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+          (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
         );
         setHighlights(sortedHighlights);
         setFilteredHighlights(sortedHighlights);

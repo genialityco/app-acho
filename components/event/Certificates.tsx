@@ -1,4 +1,5 @@
 import { searchAttendees } from "@/services/api/attendeeService";
+import { RouteProp, useRoute } from "@react-navigation/native";
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -10,13 +11,17 @@ import {
 import { ActivityIndicator, Text } from "react-native-paper";
 import WebView from "react-native-webview";
 
-interface CertificatesProps {
+type CertificatesParams = {
+  params: {
   eventId: string;
   userId: string;
+  }
 }
 
-export default function Certificates({ eventId, userId }: CertificatesProps) {
+export default function Certificates() {
   // URL dinámica del certificado
+  const route = useRoute<RouteProp<CertificatesParams, "params">>();
+  const { eventId, userId } = route.params;
   const url = `https://gen-certificados.netlify.app/certificate/${eventId}/${userId}`;
   const [certificate, setCertificate] = useState<any>(null);
   const [loading, setLoading] = useState(false);

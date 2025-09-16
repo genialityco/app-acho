@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { View, Text, Image, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Image, StyleSheet, FlatList } from "react-native";
 import {
   Card,
   IconButton,
@@ -20,11 +20,20 @@ interface Event {
     miniatureImage: string;
   };
 }
+
 interface RenderEventsProps {
   events: Event[];
+  onLoadMore: () => void;
+  loadingMore: boolean;
+  hasMore: boolean;
 }
 
-export default function RenderEvents({ events }: RenderEventsProps) {
+export default function RenderEvents({ 
+  events, 
+  onLoadMore, 
+  loadingMore, 
+  hasMore 
+}: RenderEventsProps) {
   const [pastEvents, setPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -38,7 +47,6 @@ export default function RenderEvents({ events }: RenderEventsProps) {
     setPastEvents(filteredEvents);
     setLoading(false);
   }, [events]);
-  
 
   const formatDate = (
     startDate: string | number | Date | dayjs.Dayjs | null | undefined,
@@ -56,6 +64,69 @@ export default function RenderEvents({ events }: RenderEventsProps) {
     }
   };
 
+  // Renderizar cada evento
+  const renderEventItem = ({ item }: { item: Event }) => (
+    <Card key={item._id} style={styles.eventCard}>
+      <View style={styles.row}>
+        {/* Columna para la imagen */}
+        <View style={styles.contentColumnOne}>
+          <Image
+            source={{ uri: item.styles.miniatureImage }}
+            style={styles.eventImage}
+          />
+        </View>
+
+        {/* Columna para el contenido */}
+        <View style={styles.contentColumnTwo}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.eventDate}>
+              {formatDate(item.startDate, item.endDate)}
+            </Text>
+          </View>
+
+          <Text style={styles.eventTitle}>{item.name}</Text>
+          <Text style={styles.eventDescription}>
+            {item.description ? item.description : "No hay descripcion disponible\n"}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.actionsContainer}>
+        <Button mode="contained" disabled onPress={() => {}}>
+          Finalizado
+        </Button>
+        <Button
+          mode="outlined"
+          onPress={() =>
+            router.push(
+              `/eventosbefore/components/eventdetailb?eventId=${item._id}`
+            )
+          }
+        >
+          Detalles
+        </Button>
+      </View>
+    </Card>
+  );
+
+  // Footer component para mostrar loading
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    
+    return (
+      <View style={styles.footerLoading}>
+         <ActivityIndicator size="small" color="#b4d352" />
+        <Text style={styles.loadingText}>Cargando más eventos...</Text>
+      </View>
+    );
+  };
+
+  // Empty state
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No hay eventos disponibles</Text>
+    </View>
+  );
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -66,60 +137,33 @@ export default function RenderEvents({ events }: RenderEventsProps) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollViewContent}>
-      {pastEvents.map((event) => (
-        <Card key={event._id} style={styles.eventCard}>
-          <View style={styles.row}>
-            {/* Columna para la imagen */}
-            <View style={styles.contentColumnOne}>
-              <Image
-                source={{ uri: event.styles.miniatureImage }}
-                style={styles.eventImage}
-              />
-              {/* <IconButton
-                disabled
-                icon="star"
-                size={24}
-                style={styles.iconButton}
-                onPress={() => {}}
-              /> */}
-            </View>
-
-            {/* Columna para el contenido */}
-            <View style={styles.contentColumnTwo}>
-              <View style={styles.headerContainer}>
-                <Text style={styles.eventDate}>
-                  {formatDate(event.startDate, event.endDate)}
-                </Text>
-              </View>
-
-              <Text style={styles.eventTitle}>{event.name}</Text>
-              <Text style={styles.eventDescription}>{event.description}</Text>
-            </View>
-          </View>
-          <View style={styles.actionsContainer}>
-            <Button mode="contained" disabled onPress={() => {}}>
-              Finalizado
-            </Button>
-            <Button
-              mode="outlined"
-              onPress={() =>
-                router.push(
-                  `/eventosbefore/components/eventdetailb?eventId=${event._id}`
-                )
-              }
-            >
-              Detalles
-            </Button>
-          </View>
-        </Card>
-      ))}
-    </ScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={pastEvents}
+        renderItem={renderEventItem}
+        keyExtractor={(item) => item._id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={true}
+        onEndReached={onLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+        // Optimizaciones de performance
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={10}
+        windowSize={10}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollViewContent: {
+  container: {
+    flex: 1,
+  },
+  listContainer: {
     padding: 16,
   },
   loadingContainer: {
@@ -174,17 +218,27 @@ const styles = StyleSheet.create({
   },
   eventDescription: {
     fontSize: 14,
+    paddingBottom: 10,
     color: "#555",
   },
   actionsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
   },
-  noMoreEventsText: {
-    textAlign: "center",
-    marginTop: 16,
+  footerLoading: {
+    paddingVertical: 20,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
     fontSize: 16,
-    color: "#7D7D7D",
+    color: '#999',
+    textAlign: 'center',
   },
   iconButton: {
     marginTop: 10,

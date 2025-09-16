@@ -33,7 +33,7 @@ export default function Program() {
   const fetchAgenda = async () => {
     try {
       setLoading(true);
-      const filters = { eventId };
+      const filters = { eventId: eventId };
       const response = await searchAgendas(filters);
 
       if (response.message === "No se encontraron agendas") {

@@ -104,7 +104,7 @@ export default function PosterDetail() {
   };
 
   // Abrir PDF con una aplicación externa en Android
-  const openPDF = async (uri) => {
+  const openPDF = async (uri: string) => {
     if (Platform.OS === "android") {
       try {
         const contentUri = await FileSystem.getContentUriAsync(uri);

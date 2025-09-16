@@ -24,8 +24,8 @@ interface Session {
   startDateTime: string;
   endDateTime: string;
   room: string;
-  moduleId: string;
-  speakers: string[];
+  moduleId: any;
+  speakers: Speaker[];
 }
 
 export default function SpeakerDetail() {

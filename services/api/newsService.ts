@@ -1,4 +1,4 @@
-import api from "./api";
+import api, { Data, SearchData } from "./api";
 
 // Interfaz para News
 export interface News {
@@ -17,7 +17,7 @@ export interface News {
     url: string;
   }[];
 }
-
+ 
 // Obtener todas las noticias
 export const fetchNews = async (): Promise<News[]> => {
   try {
@@ -27,7 +27,7 @@ export const fetchNews = async (): Promise<News[]> => {
     console.error("Error al obtener las noticias:", error);
     throw error;
   }
-};
+}; 
 
 // Obtener una noticia por ID
 export const fetchNewsById = async (id: string): Promise<News> => {
@@ -79,10 +79,10 @@ export const deleteNews = async (id: string): Promise<void> => {
 };
 
 // Buscar noticias con filtros
-export const searchNews = async (filters: any): Promise<News[]> => {
+export const searchNews = async (filters: any): Promise<SearchData<News[]>> => {
   try {
     const response = await api.get("/news/search", { params: filters });
-    return response.data as News[];
+    return response.data as SearchData<News[]>;
   } catch (error) {
     console.error("Error al buscar noticias con filtros:", error);
     throw error;

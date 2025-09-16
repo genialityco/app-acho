@@ -21,24 +21,59 @@ interface Speaker {
 
 export default function Speakers() {
   const { eventId, tab } = useLocalSearchParams();
-  const [speakers, setSpeakers] = useState([] as Speaker[]);
-  const [loading, setLoading] = useState(true);
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
-  const fetchSpeakers = async () => {
-    setLoading(true);
+  const fetchSpeakers = async (pageNum: number, reset: boolean = false) => {
+    if (pageNum > 1 && !hasMore) return;
+
+    if (pageNum === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const response = await searchSpeakers({ eventId: eventId });
-      setSpeakers(response.data.items);
+      const response = await searchSpeakers({ 
+        eventId: eventId, 
+        pageSize: 10, 
+        current: pageNum 
+      });
+      const newSpeakers = response.data.items || [];
+
+      if (reset) {
+        setSpeakers(newSpeakers);
+      } else {
+        setSpeakers((prev) => [...prev, ...newSpeakers]);
+      }
+
+      setHasMore(newSpeakers.length === 10);
+      setPage(pageNum);
     } catch (error) {
       console.error("Error fetching speakers:", error);
+      if (reset) {
+        setSpeakers([]);
+      }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    fetchSpeakers();
+    if (eventId) {
+      fetchSpeakers(1, true);
+    }
   }, [eventId]);
+
+  const loadMoreSpeakers = () => {
+    if (!loadingMore && hasMore) {
+      fetchSpeakers(page + 1, false);
+    }
+  };
 
   const renderConferencista = ({ item }: { item: Speaker }) => (
     <Card style={styles.card}>
@@ -74,7 +109,7 @@ export default function Speakers() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} size="large" />
+        <ActivityIndicator animating={true} size="large" color="#b4d352" />
         <Text>Cargando conferencistas...</Text>
       </View>
     );
@@ -96,6 +131,15 @@ export default function Speakers() {
         keyExtractor={(item) => item._id.toString()}
         numColumns={2}
         contentContainerStyle={styles.list}
+        onEndReached={loadMoreSpeakers}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoading}>
+              <ActivityIndicator animating={true} size="small" color="#b4d352" />
+            </View>
+          ) : null
+        }
       />
     </View>
   );
@@ -156,5 +200,9 @@ const styles = StyleSheet.create({
     left: 0,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     zIndex: 1,
+  },
+  footerLoading: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
 });

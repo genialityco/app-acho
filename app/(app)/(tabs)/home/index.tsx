@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
-  ScrollView,
+  FlatList,
   StyleSheet,
   TouchableOpacity,
   LayoutAnimation,
-  Alert,
   Modal,
   Pressable,
   RefreshControl,
+  ScrollView,
 } from "react-native";
 import {
   Text,
@@ -29,38 +29,62 @@ dayjs.locale("es");
 
 function HomeScreen() {
   const [news, setNews] = useState<News[]>([]);
-  const [loadingNews, setLoadingNews] = useState(true);
+  const [loadingNews, setLoadingNews] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState<any | null>(
-    null
-  );
+  const [selectedNotification, setSelectedNotification] = useState<any | null>(null);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const { userId } = useAuth();
   const { organization } = useOrganization();
-  const { notifications, unreadCount, markAsRead, refreshNotifications } =
-    useNotifications();
+  const { notifications, unreadCount, markAsRead, refreshNotifications } = useNotifications();
   const router = useRouter();
 
   // Obtener novedades de la organización
-  const fetchNews = async () => {
-    setLoadingNews(true);
+  const fetchNews = async (pageNum: number, reset: boolean = false) => {
+    if (pageNum > 1 && !hasMore) return;
+
+    if (pageNum === 1) {
+      setLoadingNews(true);
+    } else {
+      setLoadingMore(true);
+    }
+
     try {
-      const filters = { organizationId: organization._id };
+      const filters = { 
+        organizationId: organization._id,
+        pageSize: 10,
+        current: pageNum
+      };
       const response = await searchNews(filters);
-      setNews(response.data.items);
+      const newNews = (response.data.items || []).flat();
+
+      if (reset) {
+        setNews(newNews);
+      } else {
+        setNews((prev) => [...prev, ...newNews]);
+      }
+
+      setHasMore(newNews.length === filters.pageSize);
+      setPage(pageNum);
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     } catch (error) {
       console.error("Error al obtener las novedades:", error);
+      if (reset) {
+        setNews([]);
+      }
     } finally {
       setLoadingNews(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     if (userId && organization) {
-      fetchNews();
+      fetchNews(1, true);
       refreshNotifications();
     }
   }, [userId, organization]);
@@ -89,7 +113,8 @@ function HomeScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchNews();
+      await fetchNews(1, true);
+      await refreshNotifications();
     } catch (error) {
       console.error("Error al refrescar:", error);
     } finally {
@@ -97,50 +122,113 @@ function HomeScreen() {
     }
   };
 
-  return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Sección de notificaciones */}
-      <TouchableOpacity
-        onPress={() => setShowNotifications(!showNotifications)}
-        style={styles.notificationBanner}
-      >
-        <Avatar.Icon size={36} icon="bell" style={styles.notificationIcon} />
-        <Text style={styles.notificationBannerText}>
-          {notifications.length} notificaciones ({unreadCount} sin leer)
-        </Text>
-      </TouchableOpacity>
+  const loadMoreNews = () => {
+    if (!loadingMore && hasMore) {
+      fetchNews(page + 1, false);
+    }
+  };
 
-      {showNotifications && (
-        <View style={styles.notificationsContainer}>
-          <ScrollView style={styles.notificationsScroll} nestedScrollEnabled>
-            {notifications.map((notification) => (
-              <TouchableOpacity
-                key={notification._id}
-                onPress={() => handleNotificationPress(notification)}
-                style={[
-                  styles.notification,
-                  notification.isRead && styles.notificationRead,
-                ]}
-              >
-                <Avatar.Icon
-                  size={36}
-                  icon="bell"
-                  style={styles.notificationIcon}
-                />
-                <Text style={styles.notificationText}>
-                  {notification.title} {notification.body} - ver
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-          <Divider style={{ marginVertical: 16 }} />
-        </View>
-      )}
+  const renderNewsItem = ({ item }: { item: News }) => (
+    <TouchableOpacity
+      key={item._id}
+      onPress={() => {
+        router.push(`/home/components/novelty?newId=${item._id}`);
+      }}
+    >
+      <Card style={styles.card}>
+        <Card.Cover
+          source={{ uri: item.featuredImage }}
+          style={styles.cardImage}
+        />
+        <Card.Content>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardDescription}>
+            Publicado: {dayjs(item.createdAt).format("DD [de] MMMM [de] YYYY")}
+          </Text>
+        </Card.Content>
+        <Card.Actions>
+          <Text style={styles.readMore}>Leer más</Text>
+        </Card.Actions>
+      </Card>
+    </TouchableOpacity>
+  );
+
+  return (
+    <View style={styles.container}>
+      <FlatList
+        data={news}
+        renderItem={renderNewsItem}
+        keyExtractor={(item) => item._id}
+        ListHeaderComponent={
+          <>
+            {/* Sección de notificaciones */}
+            <TouchableOpacity
+              onPress={() => setShowNotifications(!showNotifications)}
+              style={styles.notificationBanner}
+            >
+              <Avatar.Icon size={36} icon="bell" style={styles.notificationIcon} />
+              <Text style={styles.notificationBannerText}>
+                {notifications.length} notificaciones ({unreadCount} sin leer)
+              </Text>
+            </TouchableOpacity>
+
+            {showNotifications && (
+              <View style={styles.notificationsContainer}>
+                <ScrollView style={styles.notificationsScroll} nestedScrollEnabled>
+                  {notifications.map((notification) => (
+                    <TouchableOpacity
+                      key={notification._id}
+                      onPress={() => handleNotificationPress(notification)}
+                      style={[
+                        styles.notification,
+                        notification.isRead && styles.notificationRead,
+                      ]}
+                    >
+                      <Avatar.Icon
+                        size={36}
+                        icon="bell"
+                        style={styles.notificationIcon}
+                      />
+                      <Text style={styles.notificationText}>
+                        {notification.title} {notification.body} - ver
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+                <Divider style={{ marginVertical: 16 }} />
+              </View>
+            )}
+
+            {/* Título de la sección de novedades */}
+            <Text style={styles.sectionTitle}>Novedades</Text>
+          </>
+        }
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoading}>
+              <ActivityIndicator animating={true} size="small" color="#00796b" />
+            </View>
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          loadingNews ? (
+            <View style={styles.loadingIndicator}>
+              <ActivityIndicator animating={true} size="small" color="#00796b" />
+              <Text style={styles.loadingText}>Cargando novedades...</Text>
+            </View>
+          ) : (
+            <View style={styles.loadingIndicator}>
+              <Text style={styles.loadingText}>No hay novedades disponibles</Text>
+            </View>
+          )
+        }
+        contentContainerStyle={styles.list}
+        onEndReached={loadMoreNews}
+        onEndReachedThreshold={0.5}
+      />
 
       {/* Modal para mostrar la notificación */}
       <Modal
@@ -183,52 +271,18 @@ function HomeScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Sección de novedades */}
-      {loadingNews ? (
-        <View style={styles.loadingIndicator}>
-          <ActivityIndicator animating={true} size="small" />
-          <Text style={styles.loadingText}>Cargando novedades...</Text>
-        </View>
-      ) : (
-        <View>
-          <Text style={styles.sectionTitle}>Novedades</Text>
-          {news.map((item) => (
-            <TouchableOpacity
-              key={item._id}
-              onPress={() => {
-                router.push(`/home/components/novelty?newId=${item._id}`);
-              }}
-            >
-              <Card key={item._id} style={styles.card}>
-                <Card.Cover
-                  source={{ uri: item.featuredImage }}
-                  style={styles.cardImage}
-                />
-                <Card.Content>
-                  <Text style={styles.cardTitle}>{item.title}</Text>
-                  <Text style={styles.cardDescription}>
-                    Publicado:{" "}
-                    {dayjs(item.createdAt).format("DD [de] MMMM [de] YYYY")}
-                  </Text>
-                </Card.Content>
-                <Card.Actions>
-                  <Text style={styles.readMore}>Leer más</Text>
-                </Card.Actions>
-              </Card>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
     backgroundColor: "#f5f5f5",
+  },
+  list: {
+    padding: 16,
+    paddingBottom: 20,
   },
   loadingIndicator: {
     flexDirection: "row",
@@ -257,7 +311,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   notificationsScroll: {
-    maxHeight: 280, // Limita la altura para hacerla scrolleable
+    maxHeight: 280,
   },
   notification: {
     flexDirection: "row",
@@ -349,6 +403,10 @@ const styles = StyleSheet.create({
   readMore: {
     color: "#00796b",
     fontWeight: "bold",
+  },
+  footerLoading: {
+    paddingVertical: 20,
+    alignItems: "center",
   },
 });
 

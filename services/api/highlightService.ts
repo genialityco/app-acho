@@ -1,10 +1,10 @@
-import api from "./api";
+import api, { SearchData } from "./api";
 
 // Interfaz para Highlights
 export interface Highlight {
   _id: string;
   name: string;
-  eventId: string;
+  eventId: any;
   description: string;
   imageUrl: string;
   vimeoUrl: string;
@@ -28,7 +28,7 @@ export const fetchHighlights = async (): Promise<Highlight[]> => {
 export const fetchHighlightById = async (id: string): Promise<Highlight> => {
   try {
     const response = await api.get(`/highlights/${id}`);
-    return response.data as Highlight; // Typecasting de la respuesta a un highlight
+    return response.data.data as Highlight; // Typecasting de la respuesta a un highlight
   } catch (error) {
     console.error(`Error al obtener el highlight con ID ${id}:`, error);
     throw error;
@@ -74,12 +74,22 @@ export const deleteHighlight = async (id: string): Promise<void> => {
 };
 
 // Buscar highlights con filtros
-export const searchHighlights = async (filters: any): Promise<Highlight[]> => {
+export const searchHighlights = async (filters: any): Promise<SearchData<Highlight>> => {
   try {
     const response = await api.get("/highlights/search", { params: filters });
-    return response.data as Highlight[];
+    return response.data as SearchData<Highlight>;
   } catch (error) {
-    console.error("Error al buscar highlights con filtros:", error);
     throw error;
   }
 };
+export const eventHasHighlights = async (eventId: string[]): Promise<any> => {
+  try {
+    const response = await api.post(`/highlights/event/exists`, {"eventId": eventId});
+    
+    return response.data as any;
+  } catch (error) {
+    console.error(`Error checking highlights for event ID ${eventId}:`, error);
+    throw error;
+  }
+}
+     

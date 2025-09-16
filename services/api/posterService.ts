@@ -30,6 +30,7 @@ export const fetchPosters = async (): Promise<Poster[]> => {
 export const fetchPosterById = async (id: string): Promise<Poster> => {
   try {
     const response = await api.get(`/posters/${id}`);
+    console.log("Respuesta de fetchPosterById:", response.data);
     return response.data;
   } catch (error) {
     console.error(`Error al obtener el poster con ID ${id}:`, error);

@@ -28,6 +28,7 @@ import {
 import { fetchEventById } from "@/services/api/eventService";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
+import LinkifyText from "@/app/utils/LinkifyText";
 
 interface Event {
   price: any;
@@ -371,7 +372,8 @@ export default function EventDetail({ tab }: { tab: string }) {
               </View>
             </View>
 
-            <Text style={styles.date}>{event?.description}</Text>
+            {/* <Text style={styles.date}>{event?.description}</Text> */}
+            <LinkifyText description={event?.description} styles={styles.date} />
             <Text style={styles.date}>
               {formatDate(event?.startDate, event?.endDate)}
             </Text>

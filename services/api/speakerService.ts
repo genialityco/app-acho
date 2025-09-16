@@ -21,7 +21,7 @@ export const fetchSpeakers = async () => {
 };
 
 // Obtener un conferencista por ID
-export const fetchSpeakerById = async (id: Partial<Speaker>) => {
+export const fetchSpeakerById = async (id: string) => {
   try {
     const response = await api.get(`/speakers/${id}`);
     return response.data;

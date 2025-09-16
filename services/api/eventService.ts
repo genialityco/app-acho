@@ -1,4 +1,33 @@
-import api from './api';
+import api, { SearchData } from './api';
+
+export interface Event {
+  __v: number;
+  _id: string;
+  createdAt: string; 
+  description: string;
+  endDate: string;
+  eventSections: {
+    agenda: boolean;
+    certificate: boolean;
+    documents: boolean;
+    posters: boolean;
+    speakers: boolean;
+    ubication: boolean;
+  };
+  isExternalRegistration: boolean;
+  location: {
+    address: string;
+    coordinates: any; 
+  };
+  name: string;
+  organizationId: string;
+  startDate: string; 
+  styles: {
+    eventImage: string;
+    miniatureImage: string;
+  };
+
+}
 
 // Obtener todos los eventos
 export const fetchEvents = async () => {
@@ -56,7 +85,7 @@ export const deleteEvent = async (id: any) => {
 };
 
 // Buscar eventos con filtros
-export const searchEvents = async (filters: any) => {
+export const searchEvents = async (filters: any): Promise<SearchData<Event>> => {
   try {
     const response = await api.get('/events/search', { params: filters });
     return response.data;

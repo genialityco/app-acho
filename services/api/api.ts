@@ -1,12 +1,22 @@
 import axios from 'axios';
 
+export interface Data<T> {
+  items: T[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+}
+export interface SearchData<T> {
+  data: Data<T>;
+}
+
 // Crea la instancia de Axios
 // https://lobster-app-uy9hx.ondigitalocean.app api
 // http://192.168.0.16:3000 local red
 // http://localhost:3000 local
 
 const api = axios.create({
-  baseURL: 'https://lobster-app-uy9hx.ondigitalocean.app',
+  baseURL: 'http://192.168.101.7:3000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
