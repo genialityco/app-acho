@@ -57,7 +57,8 @@ function HomeScreen() {
       const filters = { 
         organizationId: organization._id,
         pageSize: 10,
-        current: pageNum
+        current: pageNum,
+        isPublic: true
       };
       const response = await searchNews(filters);
       const newNews = (response?.data?.items || []).flat();

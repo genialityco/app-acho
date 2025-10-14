@@ -10,6 +10,7 @@ export interface News {
   featuredImage?: string;
   createdAt?: string;
   updatedAt?: string;
+  isPublic?: boolean;
   documents?: {
     id: string;
     name: string;
