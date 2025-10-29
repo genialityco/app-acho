@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { searchMembers, updateMember } from "@/services/api/memberService";
-import { ActivityIndicator, Button, TextInput } from "react-native-paper";
+import { ActivityIndicator, Button, TextInput, Switch } from "react-native-paper";
 import { fetchOrganizationById } from "@/services/api/organizationService";
 import { useOrganization } from "@/context/OrganizationContext";
 import { Picker } from "@react-native-picker/picker";
@@ -28,6 +28,7 @@ export default function EditProfileScreen() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [specialty, setSpecialty] = useState("");
+  const [dataTreatmentConsent, setDataTreatmentConsent] = useState(true)
   const [idNumber, setIdNumber] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(true);
@@ -46,12 +47,14 @@ export default function EditProfileScreen() {
       const response = await searchMembers(filters);
       if (response.status === "success" && response.data.items.length > 0) {
         const userData = response.data.items[0].properties;
+        console.log("user data", userData)
         setMemberId(response.data.items[0]._id);
         setFullName(userData.fullName);
         setEmail(userData.email);
         setSpecialty(userData.specialty);
         setIdNumber(userData.idNumber);
         setPhone(userData.phone);
+        setDataTreatmentConsent(userData?.dataTreatmentConsent)
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -91,6 +94,7 @@ export default function EditProfileScreen() {
               specialty,
               idNumber,
               phone,
+              dataTreatmentConsent,
             },
           };
           const response = await updateMember(memberId, userData);
@@ -260,6 +264,23 @@ export default function EditProfileScreen() {
             style={styles.input}
           />
 
+          {/* Switch de Consentimiento de Tratamiento de Datos */}
+          <View style={styles.switchContainer}>
+            <View style={styles.switchTextContainer}>
+              <Text style={styles.switchLabel}>
+                Consentimiento de Tratamiento de Datos
+              </Text>
+              <Text style={styles.switchDescription}>
+                Autorizo el tratamiento de mis datos personales
+              </Text>
+            </View>
+            <Switch
+              value={dataTreatmentConsent}
+              onValueChange={setDataTreatmentConsent}
+              color="#6200ee"
+            />
+          </View>
+
           <Button
             mode="contained"
             onPress={handleUpdateProfile}
@@ -343,6 +364,32 @@ const styles = StyleSheet.create({
     padding: 20,
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
+  },
+  switchContainer: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+  },
+  switchTextContainer: {
+    flex: 1,
+    marginRight: 12,
+  },
+  switchLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 4,
+  },
+  switchDescription: {
+    fontSize: 13,
+    color: "#666",
   },
   updateButton: {
     width: "100%",
