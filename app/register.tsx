@@ -90,7 +90,8 @@ export default function RegisterScreen() {
     setIsRegistering(true);
 
     try {
-      const success = await signUp(email, password, organization._id, formData);
+      const setDataTreatmentConsent = {...formData, dataTreatmentConsent: formData["dataTreatmentConsent"] == "true"}
+      const success = await signUp(email, password, organization._id, setDataTreatmentConsent);
 
       if (success) {
         Alert.alert("Registro Exitoso", "Usuario registrado correctamente.", [
