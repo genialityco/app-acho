@@ -29,7 +29,7 @@ interface Event {
     eventImage: string;
     miniatureImage: string;
   };
-  price: number;
+  price?: number;
 }
 
 export default function EventosScreen() {
@@ -47,39 +47,53 @@ export default function EventosScreen() {
   const { userId, signOut } = useAuth();
 
   // Función para obtener los eventos y las inscripciones
+
   const fetchEventsAndAttendees = async (page = 1) => {
     if (loading) return;
-
     setLoading(true);
-    setRegisteredEvents([]);
-    setIsMemberActive(false);
 
     try {
-      const filters = { organizationId: organization._id };
-      const eventResponse = await searchEvents(filters);
+      const nowISO = new Date().toISOString();
+      const payload = {
+        page,
+        limit: 20,
+        filters: [
+          { field: "organizationId", operator: "eq", value: organization._id },
+          { field: "startDate", operator: "gte", value: nowISO },
+        ],
+        sorters: [{ field: "startDate", order: "asc" }],
+      };
 
-      if (eventResponse.message === "Eventos no encontrados") {
+      const eventResponse = await searchEvents(payload);
+      if (eventResponse.message === "No se encontraron eventos") {
         setEvents([]);
         setTotalPages(1);
         return;
       }
 
-      // Ordenar y filtrar eventos
-      const sortedEvents = sortEventsByDate(eventResponse.data.items);
-      const upcomingEvents = filterUpcomingEvents(sortedEvents);
+      const items = eventResponse.data.items ?? [];
+      setEvents((prev) => (page === 1 ? items : [...prev, ...items]));
+      setTotalPages(eventResponse.data.totalPages ?? 1);
 
+      // asistentes / membresía (igual que antes)
       const attendeeResponse = await searchAttendees({ userId });
       if (attendeeResponse.message === "No se encontraron asistentes") {
-        await handleNoAttendees(upcomingEvents, eventResponse.data.totalPages);
+        const memberData = await searchMembers({
+          userId,
+          organizationId: organization._id,
+        });
+        setMemberId(memberData.data.items?.[0]?._id ?? null);
+        setIsMemberActive(!!memberData.data.items?.[0]?.memberActive);
       } else {
-        await handleAttendees(
-          attendeeResponse,
-          upcomingEvents,
-          eventResponse.data.totalPages
-        );
+        const attendeeEventIds = attendeeResponse.data.items.map((a: any) => {
+          setMemberId(a.memberId?._id ?? null);
+          if (a.memberId?.memberActive) setIsMemberActive(true);
+          return a.eventId?._id;
+        });
+        setRegisteredEvents(attendeeEventIds);
       }
-    } catch (error) {
-      console.error("Error fetching events or attendees:", error);
+    } catch (e) {
+      console.error("Error fetching events or attendees:", e);
     } finally {
       setLoading(false);
     }
@@ -155,9 +169,11 @@ export default function EventosScreen() {
     setTotalPages(totalPages);
   };
 
-  useEffect(() => {
-    fetchEventsAndAttendees();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchEventsAndAttendees(currentPage); // y pásalo al payload como arriba
+    }, [organization, userId, currentPage])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -258,7 +274,7 @@ export default function EventosScreen() {
                 <Text style={styles.eventDescription}>{event.description}</Text>
               </View>
             </View>
-            
+
             <View style={styles.actionsContainer}>
               {/* {isRegistered(event._id) ? (
                 <Button mode="outlined" disabled compact>

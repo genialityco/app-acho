@@ -12,7 +12,7 @@ export interface SearchData<T> {
 
 // Crea la instancia de Axios
 // https://lobster-app-uy9hx.ondigitalocean.app api
-// http://192.168.0.16:3000 local red
+// http://10.5.0.2:3000 local red
 // http://localhost:3000 local
 
 const api = axios.create({
