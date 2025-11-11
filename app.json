@@ -2,11 +2,12 @@
   "expo": {
     "name": "AchoApp",
     "slug": "gen-notifications",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/icons/icon-android.png",
     "scheme": "achoapp",
     "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/icons/APP_ACHO_SPLASH_FULL.png",
       "resizeMode": "contain",
@@ -29,7 +30,7 @@
       }
     },
     "android": {
-      "versionCode": 30,
+      "versionCode": 37,
       "package": "com.geniality.achoapp",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
@@ -52,8 +53,20 @@
       "favicon": "./assets/icons/icon-android.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0"
+          }
+        }
+      ],
       "expo-router",
-      "react-native-video"
+      "react-native-video",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

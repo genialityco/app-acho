@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  Linking,
 } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { searchMembers, updateMember } from "@/services/api/memberService";
@@ -165,6 +166,9 @@ export default function EditProfileScreen() {
       </View>
     );
   }
+  const handleOpenLink = () => {
+    Linking.openURL("https://acho.com.co/proteccion-de-datos/"); // Cambia por tu URL
+  };
 
   return (
     <KeyboardAvoidingView
@@ -266,21 +270,16 @@ export default function EditProfileScreen() {
 
           {/* Switch de Consentimiento de Tratamiento de Datos */}
           <View style={styles.switchContainer}>
-            <View style={styles.switchTextContainer}>
-              <Text style={styles.switchLabel}>
-                Consentimiento de Tratamiento de Datos
-              </Text>
-              <Text style={styles.switchDescription}>
-                Autorizo el tratamiento de mis datos personales
-              </Text>
-            </View>
-            <Switch
-              value={dataTreatmentConsent}
-              onValueChange={setDataTreatmentConsent}
-              color="#6200ee"
-            />
-          </View>
-
+      <View style={styles.switchTextContainer}>
+        <Text style={styles.switchLabel}>
+          Puede solicitar el retiro de su información de acuerdo a lo establecido en la política que la encuentran en la{" "}
+          <Text style={styles.link} onPress={handleOpenLink}>
+            página web
+          </Text>
+          .
+        </Text>
+      </View>
+    </View>
           <Button
             mode="contained"
             onPress={handleUpdateProfile}
@@ -401,6 +400,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 30,
   },
+  link: {
+    color: "#007bff",
+    textDecorationLine: "underline",
+  },
 });
 
 const pickerSelectStyles = {
@@ -424,4 +427,5 @@ const pickerSelectStyles = {
     color: "#888",
     marginBottom: 15,
   },
+  
 };

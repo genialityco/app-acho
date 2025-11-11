@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -6,12 +6,18 @@ import {
   Linking,
   Platform,
   ScrollView,
+  TouchableOpacity,
+  Modal,
+  Image,
+  Animated,
+  PanResponder,
 } from "react-native";
 import { Card, Text, Button, ActivityIndicator } from "react-native-paper";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { useLocalSearchParams } from "expo-router";
 import { fetchEventById } from "@/services/api/eventService";
+import ZoomableImage from "@/app/utils/ZoomableImage";
 
 interface Event {
   name: string;
@@ -20,6 +26,7 @@ interface Event {
       latitude: number;
       longitude: number;
     };
+    imageUrl?: string;
     address: string;
   };
 }
@@ -34,6 +41,13 @@ export default function Venue() {
   const [locationPermissionGranted, setLocationPermissionGranted] =
     useState(false);
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+
+  const scale = useRef(new Animated.Value(1)).current;
+  const pan = useRef(new Animated.ValueXY()).current;
+
+  const hasImage = event?.location?.imageUrl;
   // Obtener la ubicación actual del usuario con manejo de errores
   useEffect(() => {
     const getUserLocation = async () => {
@@ -81,6 +95,32 @@ export default function Venue() {
       setLoading(false);
     }
   }, [eventId]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => zoomed,
+      onMoveShouldSetPanResponder: () => zoomed,
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: () => {
+        Animated.spring(pan, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: true,
+        }).start();
+      },
+    })
+  ).current;
+
+  const handleToggleZoom = () => {
+    Animated.spring(scale, {
+      toValue: zoomed ? 1 : 2,
+      useNativeDriver: true,
+    }).start();
+    setZoomed(!zoomed);
+  };
+
 
   // Función para abrir Google Maps o Apple Maps con validación
   const getDirections = () => {
@@ -166,24 +206,54 @@ export default function Venue() {
           </MapView>
         </View>
 
-        {/* Información del Evento */}
         <View style={styles.infoOverlayContainer}>
-          <Card style={styles.venueCard}>
-            <Card.Content>
+      <Card style={styles.venueCard}>
+        <Card.Content>
+          {/* Fila: texto a la izquierda, imagen a la derecha */}
+          <View style={styles.row}>
+            <View style={styles.textContainer}>
               <Text style={styles.venueTitle}>{event.name}</Text>
-              <Text style={styles.venueDescription}>
-                {event.location.address}
-              </Text>
-              <Button
-                mode="contained"
-                onPress={getDirections}
-                style={styles.directionsButton}
-              >
-                Obtener Indicaciones
-              </Button>
-            </Card.Content>
-          </Card>
-        </View>
+              <Text style={styles.venueDescription}>{event.location.address}</Text>
+            </View>
+
+            {hasImage && (
+              <TouchableOpacity onPress={() => setModalVisible(true)}>
+                <Image
+                  source={{ uri: event.location.imageUrl }}
+                  style={styles.thumbnail}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Botón centrado */}
+          <View style={styles.buttonContainer}>
+            <Button
+              mode="contained"
+              onPress={getDirections}
+              style={styles.directionsButton}
+            >
+              Obtener Indicaciones
+            </Button>
+          </View>
+        </Card.Content>
+      </Card>
+
+      {/* Modal de imagen a pantalla completa */}
+      {hasImage && (
+      <Modal
+      visible={modalVisible}
+      transparent={true}
+      onRequestClose={() => setModalVisible(false)}
+    >
+      <ZoomableImage
+        uri={event.location.imageUrl!}
+        onClose={() => setModalVisible(false)}
+      />
+    </Modal>
+      )}
+    </View>
       </View>
     </ScrollView>
   );
@@ -209,23 +279,52 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+
+  cardContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
   infoOverlayContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+    padding: 10,
   },
   venueCard: {
-    marginBottom: 16,
     borderRadius: 10,
   },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  textContainer: {
+    flex: 1,
+    paddingRight: 10,
+  },
   venueTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     marginBottom: 4,
   },
   venueDescription: {
-    fontSize: 12,
+    fontSize: 14,
+  },
+  thumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+  },
+  buttonContainer: {
+    alignItems: "center", // Esto centra el botón horizontalmente
+    marginTop: 10,
   },
   directionsButton: {
-    marginTop: 10,
+    width: 200, // Opcional: le das un ancho fijo para que se vea uniforme
+  },
+
+  fullscreenImage: {
+    width: "90%",
+    height: "90%",
   },
 });
