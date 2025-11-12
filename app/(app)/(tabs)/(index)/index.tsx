@@ -195,7 +195,7 @@ export default function EventosScreen() {
     //   setShowModal(true);
     // }
     router.push(
-      `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+      `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
     );
   };
 
@@ -289,7 +289,7 @@ export default function EventosScreen() {
                 mode="outlined"
                 onPress={() =>
                   router.push(
-                    `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+                    `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
                   )
                 }
               >
