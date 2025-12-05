@@ -18,6 +18,8 @@ import { searchAttendees } from "@/services/api/attendeeService";
 import dayjs from "dayjs";
 import { useFocusEffect } from "@react-navigation/native";
 import { searchMembers } from "@/services/api/memberService";
+import { CertificateContext } from "@/context/CertificateContext";
+import { set } from "firebase/database";
 
 interface Event {
   _id: string;
@@ -44,6 +46,7 @@ export default function EventosScreen() {
   // const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   const { organization } = useContext(OrganizationContext);
+  const {certificates, setCertificates} = useContext(CertificateContext);
   const { userId, signOut } = useAuth();
 
   // Función para obtener los eventos y las inscripciones
@@ -51,7 +54,8 @@ export default function EventosScreen() {
   const fetchEventsAndAttendees = async (page = 1) => {
     if (loading) return;
     setLoading(true);
-
+   
+  
     try {
       const nowISO = new Date().toISOString();
       const payload = {
@@ -63,39 +67,60 @@ export default function EventosScreen() {
         ],
         sorters: [{ field: "startDate", order: "asc" }],
       };
-
+  
       const eventResponse = await searchEvents(payload);
       if (eventResponse.message === "No se encontraron eventos") {
         setEvents([]);
         setTotalPages(1);
         return;
       }
-
+  
       const items = eventResponse.data.items ?? [];
       setEvents((prev) => (page === 1 ? items : [...prev, ...items]));
       setTotalPages(eventResponse.data.totalPages ?? 1);
-
-      // asistentes / membresía (igual que antes)
+  
+      // Buscar asistentes / certificados
       const attendeeResponse = await searchAttendees({ userId });
+      
       if (attendeeResponse.message === "No se encontraron asistentes") {
+        // No hay asistencias, buscar membresía
         const memberData = await searchMembers({
           userId,
           organizationId: organization._id,
         });
         setMemberId(memberData.data.items?.[0]?._id ?? null);
         setIsMemberActive(!!memberData.data.items?.[0]?.memberActive);
+        
+        // Limpiar certificados si no hay asistencias
+        setCertificates([]);
       } else {
-        const attendeeEventIds = attendeeResponse.data.items.map((a: any) => {
+        // Hay asistencias - extraer datos
+        const attendees = attendeeResponse.data.items ?? [];
+        
+        // Extraer IDs de eventos registrados
+        const attendeeEventIds = attendees.map((a: any) => {
           setMemberId(a.memberId?._id ?? null);
           if (a.memberId?.memberActive) setIsMemberActive(true);
           return a.eventId?._id;
         });
         setRegisteredEvents(attendeeEventIds);
+  
+        // Filtrar solo los certificados válidos (attended: true)
+        const validCertificates = attendees.filter((attendee: any) => 
+          attendee.attended === true
+        );
+  
+        // Guardar todos los certificados en el contexto
+        setCertificates(validCertificates);
+        console.log(`✅ Se cargaron ${validCertificates.length} certificados en el contexto`);
       }
     } catch (e) {
       console.error("Error fetching events or attendees:", e);
+      // En caso de error, limpiar certificados
+      setCertificates([]);
     } finally {
       setLoading(false);
+     
     }
   };
 
@@ -169,11 +194,6 @@ export default function EventosScreen() {
     setTotalPages(totalPages);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchEventsAndAttendees(currentPage); // y pásalo al payload como arriba
-    }, [organization, userId, currentPage])
-  );
 
   useFocusEffect(
     useCallback(() => {

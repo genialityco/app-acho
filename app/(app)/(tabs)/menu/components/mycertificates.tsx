@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -11,17 +11,15 @@ import { WebView } from "react-native-webview";
 import { useAuth } from "@/context/AuthContext"; 
 import { searchAttendees } from "@/services/api/attendeeService";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { Certificate, CertificateContext } from "@/context/CertificateContext";
 
-interface Certificate {
-  id: number;
-  title: string;
-  date: string;
-  eventId: string;
-}
+
+
 
 export default function MyCertificatesScreen() {
   const { userId } = useAuth();
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const {certificates, setCertificates} = useContext(CertificateContext);
+  
   const [selectedCertificate, setSelectedCertificate] =
     useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,10 +35,10 @@ export default function MyCertificatesScreen() {
     try {
       setLoading(true);
       const filters = { userId, attended: true };
-      const attendees = await searchAttendees(filters);
+      
 
-      if (attendees?.data?.items?.length > 0) {
-        const userCertificates = attendees.data.items.map(
+      if (certificates.length > 0) {
+        const userCertificates = certificates.map(
           (attendee: any, index: number) => ({
             id: index + 1,
             title: `Certificado del Evento: ${attendee.eventId.name}`,
@@ -48,7 +46,7 @@ export default function MyCertificatesScreen() {
             eventId: attendee.eventId,
           })
         );
-        setCertificates(userCertificates);
+       
       }
     } catch (error) {
       console.error("Error al cargar los certificados:", error);
@@ -107,7 +105,7 @@ export default function MyCertificatesScreen() {
         <ScrollView contentContainerStyle={styles.scrollViewContent}>
           {certificates.length > 0 ? (
             certificates.map((certificate: Certificate) => (
-              <Card key={certificate.id} style={styles.certificateCard}>
+              <Card key={certificate._id} style={styles.certificateCard}>
                 <View style={styles.row}>
                   {/* Columna izquierda: Icono y fecha */}
                   <View style={styles.leftColumn}>
@@ -117,13 +115,13 @@ export default function MyCertificatesScreen() {
                       color="#00AEEF"
                       style={styles.certificateIcon}
                     />
-                    <Text style={styles.certificateDate}>{certificate.date}</Text>
+                    <Text style={styles.certificateDate}>{certificate.createdAt.split("T")[0]}</Text>
                   </View>
                   
                   {/* Columna derecha: Título y botón */}
                   <View style={styles.rightColumn}>
                     <Text style={styles.certificateTitle}>
-                      {certificate.title}
+                      {certificate.eventId.name}
                     </Text>
                     <Button
                       mode="contained"

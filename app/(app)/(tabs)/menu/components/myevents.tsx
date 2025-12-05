@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Card, Text } from "react-native-paper";
 import { Image } from "react-native";
@@ -6,6 +6,7 @@ import { useFocusEffect, router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { searchAttendees } from "@/services/api/attendeeService";
 import dayjs from "dayjs";
+import { CertificateContext } from "@/context/CertificateContext";
 
 interface Event {
   _id: string;
@@ -22,15 +23,16 @@ export default function MyEventsScreen() {
   const { userId } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const {certificates, setCertificates} = useContext(CertificateContext);
 
   useFocusEffect(
     React.useCallback(() => {
       const fetchRegisteredEvents = async () => {
         try {
           const filters = { userId };
-          const response = await searchAttendees(filters);
-          if (response.status === "success") {
-            const userEvents = response.data.items;
+          const response = certificates.filter(attendee => attendee.userId === userId);
+          if (response.length > 0) {
+            const userEvents = response;
             const mappedEvents = userEvents.map((attendee: any) => {
               const event = attendee.eventId;
               return {

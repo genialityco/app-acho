@@ -7,6 +7,7 @@ import { AuthProvider } from "@/context/AuthContext";
 // import * as SplashScreen from "expo-splash-screen";
 import { OrganizationProvider } from "@/context/OrganizationContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
+import { CertificateProvider } from "@/context/CertificateContext";
 
 export default function RootLayout() {
   // Evitar que el splash screen se cierre automáticamente
@@ -16,6 +17,7 @@ export default function RootLayout() {
 
   return (
     <OrganizationProvider>
+          <CertificateProvider>
       <AuthProvider>
         <NotificationsProvider>
         <PaperProvider theme={theme}>
@@ -28,6 +30,7 @@ export default function RootLayout() {
         </PaperProvider>
         </NotificationsProvider>
       </AuthProvider>
+            </CertificateProvider>
     </OrganizationProvider>
   );
 }

@@ -72,6 +72,7 @@ export const deleteAttendee = async (id: any) => {
 export const searchAttendees = async (filters: any) => {
   try {
     const response = await api.get("/attendees/search", { params: filters });
+    //console.log ("searchAttendees response:", response.data.data);
     return response.data;
   } catch (error) {
     console.error("Error searching attendees with filters:", error);
@@ -85,6 +86,6 @@ export const registerAttendee = async (attendeeData: Partial<Attendee>) => {
     return response.data;
   } catch (error) {
     console.error("Error registering attendee:", error);
-    throw error;
+    throw error; 
   }
 };

@@ -1,6 +1,7 @@
-import { searchAttendees } from "@/services/api/attendeeService";
+import { CertificateContext, useCertificate } from "@/context/CertificateContext";
+//import { searchAttendees } from "@/services/api/attendeeService";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -25,17 +26,42 @@ export default function Certificates() {
   const url = `https://gen-certificados.netlify.app/certificate/${eventId}/${userId}`;
   const [certificate, setCertificate] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const { certificates, currentCertificate, setCurrentCertificate } = useContext(CertificateContext);
 
-  const fetchUserCertificate = async () => {
+  const fetchUserCertificate = () => {
     try {
       setLoading(true);
-      const filters = { userId, eventId, attended: true };
-      const response = await searchAttendees(filters);
-      if (response?.data?.items?.length > 0) {
-        setCertificate(response.data.items[0]);
+      //console.log("Cargando certificado...", certificates);
+      //console.log("Buscando certificado para usuario:", userId, "evento:", eventId);
+  
+  
+  
+      // Buscar el certificado en el contexto (ya cargado previamente)
+      const foundCertificate = certificates.find(cert => {
+        const certEventId = cert.eventId?._id || cert.eventId;
+        console.log("Comparando certificado:", cert._id, "eventoId:", certEventId, "asistió:", cert.attended);
+        const match = certEventId === eventId && cert.attended === true;
+        
+        if (match) {
+          console.log("✅ Certificado encontrado en contexto:", cert._id);
+        }
+        
+        return match;
+      });
+  
+      if (foundCertificate) {
+        setCertificate(foundCertificate);
+        setCurrentCertificate(foundCertificate); // También actualizar el contexto
+        console.log(`Certificado cargado: ${foundCertificate.typeAttendee}, ${foundCertificate.certificationHours} horas`);
+      } else {
+        console.log("❌ No se encontró certificado para este evento");
+        setCertificate(null);
+        setCurrentCertificate(null);
       }
     } catch (error) {
       console.error("Error al cargar el certificado:", error);
+      setCertificate(null);
+      setCurrentCertificate(null);
     } finally {
       setLoading(false);
     }
@@ -43,7 +69,7 @@ export default function Certificates() {
 
   useEffect(() => {
     fetchUserCertificate();
-  }, [eventId, userId]);
+  }, []);
 
   // Función para abrir la URL en el navegador externo
   const openInBrowser = async () => {

@@ -41,9 +41,8 @@ export default function RenderEvents({
     const now = dayjs();
     // Filtrar eventos pasados y ordenarlos de más recientes a más antiguos
     const filteredEvents = events
-      .filter((event) => dayjs(event.startDate).isBefore(now))
-      .sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf());
-  
+    .filter(event => dayjs(event.startDate).isBefore(now))
+    .sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf());
     setPastEvents(filteredEvents);
     setLoading(false);
   }, [events]);
@@ -138,6 +137,7 @@ export default function RenderEvents({
 
   return (
     <View style={styles.container}>
+     
       <FlatList
         data={pastEvents}
         renderItem={renderEventItem}
@@ -243,4 +243,6 @@ const styles = StyleSheet.create({
   iconButton: {
     marginTop: 10,
   },
+  
+  
 });

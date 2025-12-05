@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import { View, StyleSheet, Image, Linking, Share, FlatList } from "react-native";
 import { ActivityIndicator, Button, List, Text } from "react-native-paper";
 import WebView from "react-native-webview";
@@ -11,6 +11,7 @@ import {
 } from "@/services/api/attendeeService";
 import { searchMembers } from "@/services/api/memberService";
 import { useAuth } from "@/context/AuthContext";
+import { CertificateContext } from "@/context/CertificateContext";
 
 function NoveltyScreen() {
   const [news, setNews] = useState<News | null>(null);
@@ -23,6 +24,7 @@ function NoveltyScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [memberId, setMemberId] = useState("");
   const [isMemberActive, setIsMemberActive] = useState(false);
+  const {certificates} = useContext(CertificateContext);
 
   useEffect(() => {
     if (newId) getNews();
@@ -76,9 +78,9 @@ function NoveltyScreen() {
   const getAttendeeData = async (eventId: string) => {
     try {
       const filters = { userId, eventId };
-      const response = await searchAttendees(filters);
-      if (response.status === "success" && response.data.items.length > 0) {
-        setAttendeeId(response.data.items[0]._id);
+      const response = certificates.filter( attendee =>  attendee.eventId._id === eventId);
+      if (response.length > 0) {
+        setAttendeeId(response[0]._id);
         setIsRegistered(true);
       } else {
         setIsRegistered(false);

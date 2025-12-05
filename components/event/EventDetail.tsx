@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -23,12 +23,12 @@ import {
 import {
   createAttendee,
   deleteAttendee,
-  searchAttendees,
 } from "@/services/api/attendeeService";
 import { fetchEventById } from "@/services/api/eventService";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
 import LinkifyText from "@/app/utils/LinkifyText";
+import { CertificateContext } from "@/context/CertificateContext";
 
 interface Event {
   price: any;
@@ -63,15 +63,15 @@ export default function EventDetail({ tab }: { tab: string }) {
   const [showModal, setShowModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showUnregisterModal, setShowUnregisterModal] = useState(false);
+  const {certificates} = useContext(CertificateContext);
 
   const getAttendeeData = async (eventId: any) => {
     const filters = { userId, eventId };
-    const response = await searchAttendees(filters);
+    const response = certificates.filter(attendee => attendee.eventId._id === eventId);
     if (
-      response.status === "success" &&
-      eventId === response.data.items[0].eventId._id
+      response.length > 0
     ) {
-      setAttendee(response.data.items[0]);
+      setAttendee(response);
       setIsRegistered(true);
     } else {
       setAttendee(null);
