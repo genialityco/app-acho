@@ -21,7 +21,12 @@ expo-env.d.ts
 
 # Firebase Admin SDK JSON file
 global-auth-49737-firebase-adminsdk-rfkvi-3bbc424068.json
-google-services.json
+google-services.jsons
 GoogleService-Info.plist
 achoapp-438923-7f30f65dff1b.json
+google-services.json
+
+
+android/
+
 .qodo

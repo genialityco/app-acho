@@ -20,10 +20,7 @@
       "buildNumber": "1.0.8",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "AchoApp requiere acceso a la ubicación mientras se utiliza para personalizar la experiencia.",
-        "UIBackgroundModes": [
-          "fetch",
-          "remote-notification"
-        ]
+        "UIBackgroundModes": ["fetch", "remote-notification"]
       },
       "config": {
         "googleMapsApiKey": "AIzaSyDPK8EK-KXxuCpoKYIU6VglAj8lpVrE1vA"
@@ -37,10 +34,7 @@
         "foregroundImage": "./assets/icons/icon-android.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ],
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyDPK8EK-KXxuCpoKYIU6VglAj8lpVrE1vA"
@@ -77,9 +71,7 @@
       }
     },
     "owner": "geniality",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
+    "runtimeVersion": "1.0.9",
     "updates": {
       "url": "https://u.expo.dev/7b771362-c331-49ce-94fd-f43d171a309e"
     }

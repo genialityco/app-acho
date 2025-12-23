@@ -12,7 +12,7 @@ function ACHOInfoScreen() {
       headerImage={
         <Image
           source={{
-            uri: "https://ik.imagekit.io/6cx9tc1kx/Imagenes%20App%20Prueba/WhatsApp%20Image%202024-10-09%20at%204.21.51%20PM.jpeg?updatedAt=1728508944197",
+            uri: "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/WhatsApp_Image_2025-12-17_at_9.43.02_AM.jpeg?alt=media&token=c1d2d6cd-80ed-48b2-b288-1bcfe8bcb912",
           }}
           style={styles.headerImage}
         />
