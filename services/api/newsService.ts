@@ -2,6 +2,7 @@ import api, { Data, SearchData } from "./api";
 
 // Interfaz para News
 export interface News {
+  publishedAt: any;
   _id: string;
   title: string;
   content: string;
