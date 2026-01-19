@@ -13,8 +13,15 @@ import { Text } from "react-native-paper";
 import { searchAgendas } from "@/services/api/agendaService";
 import { router, useLocalSearchParams } from "expo-router";
 import dayjs from "dayjs"; // Para formatear las fechas
+import "dayjs/locale/es";
 import { Picker } from "@react-native-picker/picker";
 import { ActivityIndicator, Chip, IconButton } from "react-native-paper";
+import {
+  buildCalendarLayout,
+  MIN_HOUR,
+  MAX_HOUR,
+  PX_PER_MIN,
+} from "@/app/utils/CalendarLayout";
 
 export default function Program() {
   const { eventId, tab } = useLocalSearchParams();
@@ -28,6 +35,9 @@ export default function Program() {
   const [modules, setModules] = useState<string[]>([]);
   const [showRoomPicker, setShowRoomPicker] = useState(false);
   const [showModulePicker, setShowModulePicker] = useState(false);
+  const [selectedSession, setSelectedSession] = useState<any | null>(null);
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [calendarWidth, setCalendarWidth] = useState(0);
 
   // Función para obtener la agenda completa filtrada por evento
   const fetchAgenda = async () => {
@@ -56,8 +66,8 @@ export default function Program() {
           sessions
             .map((session: any) => session.room)
             .filter(
-              (room: any) => room !== undefined && room !== null && room !== ""
-            )
+              (room: any) => room !== undefined && room !== null && room !== "",
+            ),
         ),
       ];
       const uniqueModules = [
@@ -66,8 +76,8 @@ export default function Program() {
             .map((session: any) => session.moduleId?.title)
             .filter(
               (module: any) =>
-                module !== undefined && module !== null && module !== ""
-            )
+                module !== undefined && module !== null && module !== "",
+            ),
         ),
       ];
 
@@ -77,7 +87,7 @@ export default function Program() {
       // Ordenar sesiones dentro de cada día cronológicamente
       for (const day in groupedByDay) {
         groupedByDay[day] = groupedByDay[day].sort((a: any, b: any) =>
-          dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime)) ? -1 : 1
+          dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime)) ? -1 : 1,
         );
       }
       setAgenda(groupedByDay);
@@ -113,9 +123,8 @@ export default function Program() {
   };
 
   // Renderizar sesiones en una tabla
-  const renderSessionsTable = (sessions: any[]) => {
+  const renderDayCalendar = (sessions: any[]) => {
     const filteredSessions = applyFilters(sessions);
-
     if (filteredSessions.length === 0) {
       return (
         <View>
@@ -124,87 +133,148 @@ export default function Program() {
       );
     }
 
+    const items = buildCalendarLayout(filteredSessions);
+
+    const totalMinutes = (MAX_HOUR - MIN_HOUR) * 60;
+    const contentHeight = totalMinutes * PX_PER_MIN;
+
     return (
-      <View>
-        {filteredSessions.map((session, index) => (
-          <View key={index} style={styles.tableRow}>
-            <View style={styles.sessionInfoContainer}>
-              <Text style={styles.sessionTime}>
-                {`${dayjs(session.startDateTime).format("HH:mm")} - ${dayjs(
-                  session.endDateTime
-                ).format("HH:mm")}`}
-              </Text>
-              <Text style={styles.sessionTitle}>{session.title}</Text>
-              {(session.room || session.moduleId?.title) && (
-                <Text
-                  variant="labelSmall"
-                  style={{ marginTop: 5, color: "gray" }}
+      <View
+        style={styles.calendarContainer}
+        onLayout={(e) => setCalendarWidth(e.nativeEvent.layout.width)}
+      >
+        {/* Columna de horas */}
+        <View style={styles.hoursColumn}>
+          {Array.from({ length: MAX_HOUR - MIN_HOUR + 1 }).map((_, idx) => {
+            const hour = MIN_HOUR + idx;
+            return (
+              <View
+                key={hour}
+                style={[styles.hourRow, { height: 60 * PX_PER_MIN }]}
+              >
+                <Text style={styles.hourText}>{`${hour}:00`}</Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Área del calendario */}
+        <View style={styles.calendarGridWrapper}>
+          <View style={[styles.calendarGrid, { height: contentHeight }]}>
+            {/* líneas horizontales por hora */}
+            {Array.from({ length: MAX_HOUR - MIN_HOUR + 1 }).map((_, idx) => (
+              <View
+                key={idx}
+                style={[styles.hourLine, { top: idx * 60 * PX_PER_MIN }]}
+              />
+            ))}
+
+            {/* Bloques de sesiones (paralelas en columnas) */}
+            {items.map((it, index) => {
+              const usableWidth = Math.max(0, calendarWidth - 70); // 70 aprox horasColumn
+              const gap = 6;
+              const colWidth =
+                it.cols > 0
+                  ? (usableWidth - gap * (it.cols - 1)) / it.cols
+                  : usableWidth;
+
+              const left = it.col * (colWidth + gap);
+
+              return (
+                <TouchableOpacity
+                  key={`${it.session._id || index}`}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setSelectedSession(it.session);
+                    setShowSessionModal(true);
+                  }}
+                  style={[
+                    styles.sessionBlock,
+                    it.session?.featured ? styles.sessionBlockFeatured : null,
+                    {
+                      top: it.top,
+                      height: it.height,
+                      left,
+                      width: colWidth,
+                    },
+                  ]}
                 >
-                  {session.room && (
-                    <>
-                      <Text style={{ fontWeight: "bold" }}>Salón: </Text>
-                      {session.room}
-                    </>
+                  <View style={styles.sessionBlockHeader}>
+                    <Text numberOfLines={5} style={styles.sessionBlockTitle}>
+                      {it.session.title}
+                    </Text>
+
+                    <Text style={styles.sessionBlockTime}>
+                      {dayjs(it.session.startDateTime).format("HH:mm")} -{" "}
+                      {dayjs(it.session.endDateTime).format("HH:mm")}
+                    </Text>
+                  </View>
+                  {(it.session.room || it.session.moduleId?.title) && (
+                    <Text numberOfLines={1} style={styles.sessionBlockMeta}>
+                      {it.session.room ? `Salón: ${it.session.room}` : ""}
+                      {it.session.room && it.session.moduleId?.title
+                        ? " • "
+                        : ""}
+                      {it.session.moduleId?.title
+                        ? `Módulo: ${it.session.moduleId.title}`
+                        : ""}
+                    </Text>
                   )}
-                  {session.room && session.moduleId?.title && ", "}
-                  {session.moduleId?.title && (
-                    <>
-                      <Text style={{ fontWeight: "bold" }}>Módulo: </Text>
-                      {session.moduleId.title}
-                    </>
-                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Modal detalle */}
+        <Modal visible={showSessionModal} animationType="slide" transparent>
+          <View style={styles.sessionModalOverlay}>
+            <View style={styles.sessionModalCard}>
+              <Text style={styles.sessionModalTitle}>
+                {selectedSession?.title}
+              </Text>
+
+              <Text style={styles.sessionModalLine}>
+                🕒{" "}
+                {selectedSession
+                  ? `${dayjs(selectedSession.startDateTime).format("HH:mm")} - ${dayjs(selectedSession.endDateTime).format("HH:mm")}`
+                  : ""}
+              </Text>
+
+              {!!selectedSession?.room && (
+                <Text style={styles.sessionModalLine}>
+                  📍 Salón: {selectedSession.room}
                 </Text>
               )}
-              {session.speakers.length > 0 && (
-                <Text variant="labelSmall" style={{ marginTop: 5 }}>
-                  {session.speakers.map(
-                    (
-                      speaker: { _id: string; names: string },
-                      index: number
-                    ) => (
-                      <TouchableOpacity
-                        key={speaker._id}
-                        onPress={() =>
-                          router.push(
-                            `/${tab}/components/speakerdetail?speakerId=${speaker._id}&eventId=${eventId}`
-                          )
-                        }
-                      >
-                        <Text style={styles.linkText}>
-                          {speaker.names}
-                          {index < session.speakers.length - 1 ? ", " : ""}
-                        </Text>
-                      </TouchableOpacity>
-                    )
-                  )}
+
+              {!!selectedSession?.moduleId?.title && (
+                <Text style={styles.sessionModalLine}>
+                  🧩 Módulo: {selectedSession.moduleId.title}
                 </Text>
               )}
-            </View>
-            <View style={styles.speakersContainer}>
-              {session.speakers.map(
-                (
-                  speaker: { imageUrl: any },
-                  idx: React.Key | null | undefined
-                ) => (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() =>
-                      router.push(
-                        `/${tab}/components/speakerdetail?speakerId=${speaker._id}&eventId=${eventId}`
-                      )
-                    }
-                  >
-                    <Image
-                      key={idx}
-                      source={{ uri: speaker.imageUrl }}
-                      style={styles.speakerImage}
-                    />
-                  </TouchableOpacity>
-                )
+
+              {!!selectedSession?.description && (
+                <Text style={styles.sessionModalDesc}>
+                  {selectedSession.description}
+                </Text>
               )}
+
+              {!!selectedSession?.speakers?.length && (
+                <Text style={styles.sessionModalLine}>
+                  🎤 Speakers:{" "}
+                  {selectedSession.speakers.map((s: any) => s.names).join(", ")}
+                </Text>
+              )}
+
+              <View style={{ marginTop: 12 }}>
+                <Button
+                  title="Cerrar"
+                  onPress={() => setShowSessionModal(false)}
+                />
+              </View>
             </View>
           </View>
-        ))}
+        </Modal>
       </View>
     );
   };
@@ -212,14 +282,15 @@ export default function Program() {
   // Renderizar la agenda por día seleccionado
   const renderAgenda = () => {
     if (agenda[selectedDay]) {
-      return renderSessionsTable(agenda[selectedDay]);
-    } else {
-      return <Text>No hay sesiones disponibles para este día.</Text>;
+      return renderDayCalendar(agenda[selectedDay]);
     }
+    return <Text>No hay sesiones disponibles para este día.</Text>;
   };
 
   // Renderizar los tabs como "Día 1", "Día 2", etc.
   const renderDayTabs = () => {
+    dayjs.locale("es");
+
     return days.map((day, index) => (
       <TouchableOpacity
         key={index}
@@ -230,7 +301,9 @@ export default function Program() {
         ]}
         onPress={() => setSelectedDay(day)}
       >
-        <Text style={styles.tabText}>{`Día ${index + 1}`}</Text>
+        <Text style={styles.tabText}>
+          {dayjs(day).locale("es").format("D/MMM").toLowerCase()}
+        </Text>
       </TouchableOpacity>
     ));
   };
@@ -529,5 +602,129 @@ const styles = StyleSheet.create({
   pickerAndroid: {
     height: 50,
     width: "50%",
+  },
+
+  calendarContainer: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e6e6e6",
+  },
+
+  hoursColumn: {
+    width: 70,
+    backgroundColor: "#fafafa",
+    borderRightWidth: 1,
+    borderRightColor: "#eee",
+  },
+
+  hourRow: {
+    justifyContent: "flex-start",
+    paddingTop: 6,
+    paddingLeft: 8,
+  },
+
+  hourText: {
+    fontSize: 12,
+    color: "#666",
+  },
+
+  calendarGridWrapper: {
+    flex: 1,
+  },
+
+  calendarGrid: {
+    position: "relative",
+    backgroundColor: "#fff",
+  },
+
+  hourLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: "#f0f0f0",
+  },
+
+  sessionBlockHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+
+  sessionBlock: {
+    position: "absolute",
+    borderRadius: 10,
+    padding: 8,
+    backgroundColor: "rgba(0, 188, 212, 0.16)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 188, 212, 0.35)",
+  },
+
+  sessionBlockTime: {
+    flexShrink: 0, // la hora no se encoge
+    fontSize: 11,
+    color: "#006973",
+    fontWeight: "700",
+    textAlign: "right",
+  },
+
+  sessionBlockTitle: {
+    flex: 1, // título ocupa lo disponible
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#003f45",
+  },
+
+  sessionBlockMeta: {
+    fontSize: 11,
+    color: "#4f4f4f",
+    marginTop: 4,
+  },
+
+  sessionModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+
+  sessionModalCard: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+
+  sessionModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 8,
+  },
+
+  sessionModalLine: {
+    fontSize: 14,
+    marginTop: 6,
+    color: "#333",
+  },
+
+  sessionModalDesc: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#444",
+    lineHeight: 20,
+  },
+  sessionBlockFeatured: {
+    backgroundColor: "rgba(255, 193, 7, 0.28)", // amarillo suave
+    borderColor: "rgba(255, 193, 7, 0.85)",
+    borderWidth: 2,
+  },
+  featuredLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#8a6d00",
   },
 });
