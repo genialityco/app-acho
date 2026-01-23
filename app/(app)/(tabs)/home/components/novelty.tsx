@@ -1,6 +1,13 @@
 import { useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, Image, Linking, Share, FlatList } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Image,
+  Linking,
+  Share,
+  FlatList,
+} from "react-native";
 import { ActivityIndicator, Button, List, Text } from "react-native-paper";
 import WebView from "react-native-webview";
 import { fetchNewsById, News } from "@/services/api/newsService";
@@ -11,6 +18,95 @@ import {
 } from "@/services/api/attendeeService";
 import { searchMembers } from "@/services/api/memberService";
 import { useAuth } from "@/context/AuthContext";
+
+function normalizeMediaUrl(url: any): string | null {
+  if (typeof url !== "string") return null;
+
+  let u = url.trim();
+  if (!u || u.toLowerCase() === "null") return null;
+
+  // %25XX -> %XX (por ejemplo %2520 -> %20)
+  u = u.replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
+
+  // espacios sueltos -> %20
+  u = u.replace(/ /g, "%20");
+
+  return u;
+}
+
+function normalizeVideos(html: string) {
+  if (!html) return html;
+
+  // Caso 1: <video src="..."></video>
+  let out = html.replace(
+    /<video([^>]*?)\ssrc="([^"]+)"([^>]*)>\s*<\/video>/gi,
+    (_match, pre, src, post) => {
+      const safeSrc = normalizeMediaUrl(src);
+      if (!safeSrc) return ""; // no renderizar videos rotos
+
+      const prePost = `${pre} ${post}`;
+
+      // Unifica style
+      const styleMatch = prePost.match(/\sstyle="([^"]*)"/i);
+      const existingStyle = styleMatch?.[1] ?? "";
+      const mergedStyle =
+        `${existingStyle}; max-width:100%; display:block; margin:10px auto; background:#000;`
+          .replace(/;;+/g, ";")
+          .trim();
+
+      // Quitamos el style anterior para no duplicar y lo ponemos mergeado
+      const prePostNoStyle = prePost.replace(/\sstyle="[^"]*"/i, "");
+
+      return `
+<video ${prePostNoStyle}
+  controls
+  muted
+  playsinline
+  webkit-playsinline
+  preload="metadata"
+  style="${mergedStyle}"
+>
+  <source src="${safeSrc}" type="video/mp4" />
+</video>
+      `.trim();
+    },
+  );
+
+  out = out.replace(
+    /<source([^>]*?)\ssrc="([^"]+)"([^>]*?)\/?>/gi,
+    (_m, a, src, b) => {
+      const safeSrc = normalizeMediaUrl(src);
+      if (!safeSrc) return ""; // elimina source inválido
+      return `<source${a} src="${safeSrc}"${b} />`;
+    },
+  );
+
+  return out;
+}
+
+function wrapHtml(bodyHtml: string) {
+  return `
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; padding: 0; margin: 0; }
+      img { max-width: 100%; height: auto; }
+      video { background: #000; width: 100%; }
+      a { color: #007BFF; }
+    </style>
+  </head>
+  <body>
+    ${bodyHtml || ""}
+  </body>
+</html>
+  `.trim();
+}
 
 function NoveltyScreen() {
   const [news, setNews] = useState<News | null>(null);
@@ -99,10 +195,11 @@ function NoveltyScreen() {
     }
   };
 
-  const modifiedContent = news?.eventId
-    ? news.content.replace(
-        /(- Miembros activos ACHO - GRATIS)(\s*<\/br>)/,
-        `$1 
+  const modifiedContent = useMemo(() => {
+    const base = news?.eventId
+      ? news.content.replace(
+          /(- Miembros activos ACHO - GRATIS)(\s*<\/br>)/,
+          `$1 
         ${
           isMemberActive
             ? `<a href="#" id="registerMember" style="color: #007BFF; text-decoration: underline; margin-left: 10px;">
@@ -160,6 +257,17 @@ function NoveltyScreen() {
     `
     : news?.content || "";
 
+    const normalized = normalizeVideos(base);
+    return wrapHtml(normalized);
+  }, [
+    news?.content,
+    news?.eventId,
+    isMemberActive,
+    isRegistered,
+    userId,
+    attendedId,
+  ]);
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -192,6 +300,10 @@ function NoveltyScreen() {
           style={{ flex: 1 }}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          allowsInlineMediaPlayback
+          allowsFullscreenVideo
+          mediaPlaybackRequiresUserAction={true}
+          mixedContentMode="always"
           onMessage={async (event) => {
             try {
               const message = JSON.parse(event.nativeEvent.data);

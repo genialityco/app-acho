@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from "axios";
 
 export interface Data<T> {
   items: T[];
@@ -16,10 +16,10 @@ export interface SearchData<T> {
 // http://localhost:3000 local
 
 const api = axios.create({
-  baseURL: 'http://172.31.80.1:3000',
+  baseURL: "https://lobster-app-uy9hx.ondigitalocean.app",
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -32,7 +32,7 @@ api.interceptors.request.use(
   (error) => {
     // Manejo de error antes de que la solicitud se envíe
     return Promise.reject(error);
-  }
+  },
 );
 
 // Interceptor de respuestas
@@ -43,9 +43,9 @@ api.interceptors.response.use(
   },
   (error) => {
     // Manejo de errores global
-    console.error('Error en la respuesta:', error);
+    console.error("Error en la respuesta:", error);
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

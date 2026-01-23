@@ -4,18 +4,19 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Platform,
   Modal,
   Button,
 } from "react-native";
-import { Text } from "react-native-paper";
-import { searchAgendas } from "@/services/api/agendaService";
-import { router, useLocalSearchParams } from "expo-router";
-import dayjs from "dayjs"; // Para formatear las fechas
-import "dayjs/locale/es";
+import { Text, ActivityIndicator, Chip, IconButton } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
-import { ActivityIndicator, Chip, IconButton } from "react-native-paper";
+import { useLocalSearchParams } from "expo-router";
+import dayjs from "dayjs";
+import "dayjs/locale/es";
+
+import { searchAgendas } from "@/services/api/agendaService";
+import { fetchSpeakers, searchSpeakers } from "@/services/api/speakerService";
+
 import {
   buildCalendarLayout,
   MIN_HOUR,
@@ -24,35 +25,147 @@ import {
 } from "@/app/utils/CalendarLayout";
 
 export default function Program() {
-  const { eventId, tab } = useLocalSearchParams();
+  const { eventId } = useLocalSearchParams();
+
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [agenda, setAgenda] = useState<{ [key: string]: any[] }>({});
   const [days, setDays] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [filterRoom, setFilterRoom] = useState<string>("");
   const [filterModule, setFilterModule] = useState<string>("");
   const [rooms, setRooms] = useState<string[]>([]);
   const [modules, setModules] = useState<string[]>([]);
   const [showRoomPicker, setShowRoomPicker] = useState(false);
   const [showModulePicker, setShowModulePicker] = useState(false);
+
   const [selectedSession, setSelectedSession] = useState<any | null>(null);
   const [showSessionModal, setShowSessionModal] = useState(false);
+
   const [calendarWidth, setCalendarWidth] = useState(0);
 
-  // Función para obtener la agenda completa filtrada por evento
+  // ✅ Indice global: speakerId -> speakerName
+  const [speakerIndex, setSpeakerIndex] = useState<Record<string, string>>({});
+
+  const buildSpeakerIndexFromList = (list: any[] = []) => {
+    const idx: Record<string, string> = {};
+    (list || []).forEach((sp: any) => {
+      const id = getId(sp); // ✅
+      const name = String(sp?.names || sp?.name || "").trim();
+      if (id && name) idx[id] = name;
+    });
+    return idx;
+  };
+
+  const getId = (x: any): string => {
+    if (!x) return "";
+
+    // string directo
+    if (typeof x === "string") return x;
+
+    // Mongo export: { $oid: "..." }
+    if (x.$oid && typeof x.$oid === "string") return x.$oid;
+
+    // { _id: "..." }
+    if (typeof x._id === "string") return x._id;
+
+    // { _id: { $oid: "..." } }
+    if (x._id?.$oid && typeof x._id.$oid === "string") return x._id.$oid;
+
+    // { speakerId: "..." } o { speakerId: { $oid: "..." } }
+    if (typeof x.speakerId === "string") return x.speakerId;
+    if (x.speakerId?.$oid && typeof x.speakerId.$oid === "string")
+      return x.speakerId.$oid;
+
+    return "";
+  };
+
+  // =========================================================
+  // Helpers: speakers (objeto o id)
+  // =========================================================
+  const getSpeakerNames = (speakers: any[] = []) => {
+    const names = (speakers || [])
+      .map((s: any) => {
+        if (!s) return "";
+
+        // ✅ si viene como string id
+        if (typeof s === "string") return speakerIndex[s] || "";
+
+        // ✅ si viene populate normal
+        if (s.names) return String(s.names);
+        if (s.name) return String(s.name);
+        if (s.speakerId?.names) return String(s.speakerId.names);
+
+        // ✅ fallback por _id del objeto
+        const id = s._id ? String(s._id) : "";
+        return id ? speakerIndex[id] || "" : "";
+      })
+      .filter(Boolean)
+      .join(", ");
+
+    return names.trim();
+  };
+
+  // =========================================================
+  // Normalizador: solo asegurar subSessions array
+  // (NO creamos fallback fake)
+  // =========================================================
+  const normalizeSession = (session: any) => ({
+    ...session,
+    subSessions: Array.isArray(session?.subSessions) ? session.subSessions : [],
+  });
+
+  // =========================================================
+  // Fetch agenda + speakers
+  // =========================================================
   const fetchAgenda = async () => {
     try {
       setLoading(true);
+
+      // ✅ 1) Cargar speakers primero (para resolver IDs en subSessions)
+      let speakersList: any[] = [];
+      try {
+        if (eventId) {
+          const spRes = await searchSpeakers({ eventId });
+          speakersList =
+            spRes?.data?.items || spRes?.data || spRes?.items || [];
+        } else {
+          const spRes = await fetchSpeakers();
+          speakersList =
+            spRes?.data?.items || spRes?.data || spRes?.items || [];
+        }
+      } catch (e) {
+        console.log("⚠️ No se pudo cargar speakers, continuo igual:", e);
+      }
+
+      const idx = buildSpeakerIndexFromList(speakersList);
+      setSpeakerIndex(idx);
+      console.log("✅ SPEAKER INDEX =>", idx);
+
+      // ✅ 2) Cargar agenda
       const filters = { eventId: eventId };
       const response = await searchAgendas(filters);
 
-      if (response.message === "No se encontraron agendas") {
+      if (!response || response?.message === "No se encontraron agendas") {
+        setAgenda({});
+        setDays([]);
+        setSelectedDay("");
         return;
       }
 
-      const sessions = response.data.items[0].sessions;
+      // ⚠️ si tu API trae muchas agendas, aquí puedes decidir:
+      // - usar todas (flatten) o
+      // - usar solo la primera
+      // Yo usaré TODAS para que no “se repita la misma”.
+      const agendaItems = response?.data?.items || [];
+      const allSessionsRaw = agendaItems.flatMap((a: any) => a?.sessions || []);
 
-      // Agrupar sesiones por días
+      const sessions = allSessionsRaw.map(normalizeSession);
+
+      console.log("📦 SESSIONS RAW COUNT =>", allSessionsRaw.length);
+      console.log("📦 SESSIONS NORMALIZED COUNT =>", sessions.length);
+
+      // Agrupar por día
       const groupedByDay = sessions.reduce((acc: any, session: any) => {
         const sessionDay = dayjs(session.startDateTime).format("YYYY-MM-DD");
         if (!acc[sessionDay]) acc[sessionDay] = [];
@@ -60,39 +173,40 @@ export default function Program() {
         return acc;
       }, {});
 
-      // Extraer salones y módulos únicos para los filtros
+      // Unique rooms & modules
       const uniqueRooms = [
         ...new Set(
           sessions
-            .map((session: any) => session.room)
-            .filter(
-              (room: any) => room !== undefined && room !== null && room !== "",
-            ),
+            .map((s: any) => s.room)
+            .filter((r: any) => r !== undefined && r !== null && r !== ""),
         ),
       ];
+
       const uniqueModules = [
         ...new Set(
           sessions
-            .map((session: any) => session.moduleId?.title)
-            .filter(
-              (module: any) =>
-                module !== undefined && module !== null && module !== "",
-            ),
+            .map((s: any) => s?.moduleId?.title)
+            .filter((m: any) => m !== undefined && m !== null && m !== ""),
         ),
       ];
 
       setRooms(uniqueRooms as string[]);
       setModules(uniqueModules as string[]);
 
-      // Ordenar sesiones dentro de cada día cronológicamente
+      // Ordenar sesiones por hora dentro del día
       for (const day in groupedByDay) {
         groupedByDay[day] = groupedByDay[day].sort((a: any, b: any) =>
           dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime)) ? -1 : 1,
         );
       }
+
       setAgenda(groupedByDay);
-      setDays(Object.keys(groupedByDay));
-      setSelectedDay(Object.keys(groupedByDay)[0]);
+
+      const dayKeys = Object.keys(groupedByDay).sort((a, b) =>
+        dayjs(a).isBefore(dayjs(b)) ? -1 : 1,
+      );
+      setDays(dayKeys);
+      setSelectedDay(dayKeys[0] || "");
     } catch (error) {
       console.error("Error fetching agenda:", error);
     } finally {
@@ -100,12 +214,13 @@ export default function Program() {
     }
   };
 
-  // Efecto para cargar la agenda al montar el componente
   useEffect(() => {
     fetchAgenda();
   }, [eventId]);
 
-  // Aplicar los filtros de salón y módulo
+  // =========================================================
+  // Filters
+  // =========================================================
   const applyFilters = (sessions: any[]) => {
     return sessions.filter((session) => {
       const matchesRoom = filterRoom ? session.room === filterRoom : true;
@@ -116,13 +231,95 @@ export default function Program() {
     });
   };
 
-  // Función para restablecer los filtros
   const resetFilters = () => {
     setFilterRoom("");
     setFilterModule("");
   };
 
-  // Renderizar sesiones en una tabla
+  // =========================================================
+  // Sub-sesiones por BLOQUES (alineadas por tiempo dentro del bloque padre)
+  // =========================================================
+  const renderSubSessionsInsideBlock = (
+    parentSession: any,
+    parentBlockHeightPx: number,
+  ) => {
+    console.log("🔽 Render SUBSESSIONS for:", parentSession?.subSessions);
+    const subSessions = Array.isArray(parentSession?.subSessions)
+      ? parentSession.subSessions
+      : [];
+    if (!subSessions.length) return null;
+
+    const parentStart = dayjs(parentSession.startDateTime);
+    const parentEnd = dayjs(parentSession.endDateTime);
+    const parentMinutes = Math.max(1, parentEnd.diff(parentStart, "minute"));
+
+    // Ajusta esto si tu header ocupa más/menos
+    const headerSpace = 78;
+    const footerSpace = 8;
+    const innerHeight = Math.max(
+      40,
+      parentBlockHeightPx - headerSpace - footerSpace,
+    );
+
+    if (innerHeight < 55) {
+      return (
+        <Text style={styles.subMore}>{subSessions.length} actividades</Text>
+      );
+    }
+
+    const pxPerMinInner = innerHeight / parentMinutes;
+
+    const sorted = [...subSessions].sort((a: any, b: any) =>
+      dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime)) ? -1 : 1,
+    );
+
+    return (
+      <View style={[styles.subGridWrap, { height: innerHeight }]}>
+        {sorted.map((sub: any, idx: number) => {
+          const s = dayjs(sub.startDateTime);
+          const e = dayjs(sub.endDateTime);
+
+          const topMin = Math.max(0, s.diff(parentStart, "minute"));
+          const durMin = Math.max(1, e.diff(s, "minute"));
+
+          const top = topMin * pxPerMinInner;
+          const height = Math.max(28, durMin * pxPerMinInner);
+
+          // ✅ AQUÍ SE RESUELVEN NOMBRES A PARTIR DE IDS
+          const names = getSpeakerNames(sub?.speakers || []);
+
+          // Debug útil si quieres:
+          // console.log("SUB RAW speakers =>", sub?.speakers);
+          // console.log("SUB RESOLVED =>", names);
+
+          return (
+            <View
+              key={sub._id || idx}
+              style={[styles.subSessionBlockInnerCalendar, { top, height }]}
+            >
+              <Text style={styles.subSessionTime} numberOfLines={1}>
+                {s.format("HH:mm")} - {e.format("HH:mm")}
+              </Text>
+
+              <Text style={styles.subSessionTitle} numberOfLines={2}>
+                {sub.title}
+              </Text>
+
+              {!!names && (
+                <Text style={styles.subSessionSpeakers} numberOfLines={2}>
+                  🎤 {names}
+                </Text>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  // =========================================================
+  // Render day calendar
+  // =========================================================
   const renderDayCalendar = (sessions: any[]) => {
     const filteredSessions = applyFilters(sessions);
     if (filteredSessions.length === 0) {
@@ -134,7 +331,6 @@ export default function Program() {
     }
 
     const items = buildCalendarLayout(filteredSessions);
-
     const totalMinutes = (MAX_HOUR - MIN_HOUR) * 60;
     const contentHeight = totalMinutes * PX_PER_MIN;
 
@@ -158,10 +354,9 @@ export default function Program() {
           })}
         </View>
 
-        {/* Área del calendario */}
+        {/* Área calendario */}
         <View style={styles.calendarGridWrapper}>
           <View style={[styles.calendarGrid, { height: contentHeight }]}>
-            {/* líneas horizontales por hora */}
             {Array.from({ length: MAX_HOUR - MIN_HOUR + 1 }).map((_, idx) => (
               <View
                 key={idx}
@@ -169,9 +364,8 @@ export default function Program() {
               />
             ))}
 
-            {/* Bloques de sesiones (paralelas en columnas) */}
             {items.map((it, index) => {
-              const usableWidth = Math.max(0, calendarWidth - 70); // 70 aprox horasColumn
+              const usableWidth = Math.max(0, calendarWidth - 70);
               const gap = 6;
               const colWidth =
                 it.cols > 0
@@ -179,6 +373,7 @@ export default function Program() {
                   : usableWidth;
 
               const left = it.col * (colWidth + gap);
+              const speakerNames = getSpeakerNames(it.session?.speakers || []);
 
               return (
                 <TouchableOpacity
@@ -190,25 +385,24 @@ export default function Program() {
                   }}
                   style={[
                     styles.sessionBlock,
-                    it.session?.featured ? styles.sessionBlockFeatured : null,
-                    {
-                      top: it.top,
-                      height: it.height,
-                      left,
-                      width: colWidth,
-                    },
+                    { top: it.top, height: it.height, left, width: colWidth },
                   ]}
                 >
-                  <View style={styles.sessionBlockHeader}>
-                    <Text numberOfLines={5} style={styles.sessionBlockTitle}>
-                      {it.session.title}
-                    </Text>
+                  <Text style={styles.sessionBlockTimeLeft}>
+                    {dayjs(it.session.startDateTime).format("HH:mm")} -{" "}
+                    {dayjs(it.session.endDateTime).format("HH:mm")}
+                  </Text>
 
-                    <Text style={styles.sessionBlockTime}>
-                      {dayjs(it.session.startDateTime).format("HH:mm")} -{" "}
-                      {dayjs(it.session.endDateTime).format("HH:mm")}
+                  <Text style={styles.sessionBlockTitleFull} numberOfLines={3}>
+                    {it.session.title}
+                  </Text>
+
+                  {!!speakerNames && (
+                    <Text style={styles.sessionBlockSpeakers} numberOfLines={2}>
+                      🎤 {speakerNames}
                     </Text>
-                  </View>
+                  )}
+
                   {(it.session.room || it.session.moduleId?.title) && (
                     <Text numberOfLines={1} style={styles.sessionBlockMeta}>
                       {it.session.room ? `Salón: ${it.session.room}` : ""}
@@ -220,6 +414,9 @@ export default function Program() {
                         : ""}
                     </Text>
                   )}
+
+                  {/* ✅ SUBSESIONES EN BLOQUES */}
+                  {renderSubSessionsInsideBlock(it.session, it.height)}
                 </TouchableOpacity>
               );
             })}
@@ -237,7 +434,9 @@ export default function Program() {
               <Text style={styles.sessionModalLine}>
                 🕒{" "}
                 {selectedSession
-                  ? `${dayjs(selectedSession.startDateTime).format("HH:mm")} - ${dayjs(selectedSession.endDateTime).format("HH:mm")}`
+                  ? `${dayjs(selectedSession.startDateTime).format("HH:mm")} - ${dayjs(
+                      selectedSession.endDateTime,
+                    ).format("HH:mm")}`
                   : ""}
               </Text>
 
@@ -253,17 +452,54 @@ export default function Program() {
                 </Text>
               )}
 
-              {!!selectedSession?.description && (
-                <Text style={styles.sessionModalDesc}>
-                  {selectedSession.description}
-                </Text>
-              )}
+              {(() => {
+                const names = getSpeakerNames(selectedSession?.speakers || []);
+                if (!names) return null;
+                return (
+                  <Text style={styles.sessionModalLine}>
+                    🎤 Speakers: {names}
+                  </Text>
+                );
+              })()}
 
-              {!!selectedSession?.speakers?.length && (
-                <Text style={styles.sessionModalLine}>
-                  🎤 Speakers:{" "}
-                  {selectedSession.speakers.map((s: any) => s.names).join(", ")}
-                </Text>
+              {!!selectedSession?.subSessions?.length && (
+                <View style={{ marginTop: 12 }}>
+                  <Text style={styles.subModalTitle}>Actividades</Text>
+
+                  {selectedSession.subSessions
+                    .slice()
+                    .sort((a: any, b: any) =>
+                      dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime))
+                        ? -1
+                        : 1,
+                    )
+                    .map((sub: any, i: number) => {
+                      const s = dayjs(sub.startDateTime);
+                      const e = dayjs(sub.endDateTime);
+                      const subNames = getSpeakerNames(sub?.speakers || []);
+                      return (
+                        <View key={sub._id || i} style={styles.subModalItem}>
+                          <Text
+                            style={styles.subModalItemTitle}
+                            numberOfLines={2}
+                          >
+                            {sub.title}
+                          </Text>
+                          <Text style={styles.subModalItemTime}>
+                            {s.format("HH:mm")} - {e.format("HH:mm")}
+                          </Text>
+                          {!!subNames && (
+                            <Text
+                              style={styles.subModalItemSpeakers}
+                              numberOfLines={2}
+                            >
+                              🎤 {subNames}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })}
+                </View>
               )}
 
               <View style={{ marginTop: 12 }}>
@@ -279,25 +515,20 @@ export default function Program() {
     );
   };
 
-  // Renderizar la agenda por día seleccionado
   const renderAgenda = () => {
-    if (agenda[selectedDay]) {
-      return renderDayCalendar(agenda[selectedDay]);
-    }
+    if (agenda[selectedDay]) return renderDayCalendar(agenda[selectedDay]);
     return <Text>No hay sesiones disponibles para este día.</Text>;
   };
 
-  // Renderizar los tabs como "Día 1", "Día 2", etc.
   const renderDayTabs = () => {
     dayjs.locale("es");
-
     return days.map((day, index) => (
       <TouchableOpacity
         key={index}
         style={[
           styles.dayTab,
           selectedDay === day ? styles.selectedDayTab : null,
-          { width: `${100 / days.length}%` },
+          { width: `${100 / Math.max(days.length, 1)}%` },
         ]}
         onPress={() => setSelectedDay(day)}
       >
@@ -327,10 +558,9 @@ export default function Program() {
 
   return (
     <View style={styles.container}>
-      {/* Filtros dinámicos de Salón y Módulo */}
+      {/* Filtros */}
       <View style={styles.filtersContainer}>
         {Platform.OS === "ios" && (
-          // TouchableOpacity para iOS
           <>
             <TouchableOpacity
               style={styles.pickerButton}
@@ -347,6 +577,7 @@ export default function Program() {
             </TouchableOpacity>
           </>
         )}
+
         {Platform.OS === "android" && (
           <View style={styles.androidPickerWrapper}>
             <Picker
@@ -376,10 +607,9 @@ export default function Program() {
         <IconButton icon="filter-off" size={20} onPress={resetFilters} />
       </View>
 
-      {/* Modales para iOS */}
+      {/* Modales iOS */}
       {Platform.OS === "ios" && (
         <>
-          {/* Modal para Salones */}
           <Modal visible={showRoomPicker} animationType="slide" transparent>
             <View style={styles.modalContainer}>
               <View style={styles.pickerContainer}>
@@ -403,7 +633,6 @@ export default function Program() {
             </View>
           </Modal>
 
-          {/* Modal para Módulos */}
           <Modal visible={showModulePicker} animationType="slide" transparent>
             <View style={styles.modalContainer}>
               <View style={styles.pickerContainer}>
@@ -429,7 +658,7 @@ export default function Program() {
         </>
       )}
 
-      {/* Chips de filtros */}
+      {/* Chips */}
       {(filterRoom || filterModule) !== "" && (
         <View style={styles.containerChips}>
           {filterRoom !== "" && (
@@ -455,23 +684,59 @@ export default function Program() {
         </View>
       )}
 
-      {/* Selector de Día */}
+      {/* Tabs días */}
       <View style={styles.dayTabContainer}>{renderDayTabs()}</View>
 
-      {/* Mostrar agenda según el día seleccionado */}
-      <ScrollView style={styles.scrollContainer}>
-        {loading ? <Text>Cargando...</Text> : renderAgenda()}
-      </ScrollView>
+      {/* Agenda */}
+      <ScrollView style={styles.scrollContainer}>{renderAgenda()}</ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: "#f5f5f5",
+  container: { flex: 1, padding: 12, backgroundColor: "#f5f5f5" },
+
+  // ✅ Sub-sesiones por BLOQUES dentro del bloque padre
+  subGridWrap: {
+    position: "relative",
+    marginTop: 6,
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.55)",
   },
+
+  subSessionBlockInnerCalendar: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderWidth: 1,
+    borderColor: "rgba(0, 188, 212, 0.35)",
+  },
+
+  subSessionTime: {
+    fontSize: 10,
+    fontWeight: "900",
+    color: "#006973",
+  },
+
+  subSessionTitle: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#003f45",
+  },
+
+  subSessionSpeakers: {
+    marginTop: 2,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#1f1f1f",
+  },
+
   dayTabContainer: {
     flexDirection: "row",
     justifyContent: "center",
@@ -479,21 +744,16 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
   },
+
   containerChips: {
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     marginBottom: 8,
   },
-  chip: {
-    margin: 2,
-  },
-  textChip: {
-    fontSize: 12,
-  },
-  linkText: {
-    color: "#00796b",
-  },
+  chip: { margin: 2 },
+  textChip: { fontSize: 12 },
+
   dayTab: {
     padding: 8,
     paddingHorizontal: 20,
@@ -503,73 +763,19 @@ const styles = StyleSheet.create({
     borderColor: "#C4C4C4",
     backgroundColor: "#fff",
   },
-  selectedDayTab: {
-    backgroundColor: "#00BCD4",
-    borderColor: "#00BCD4",
-  },
+  selectedDayTab: { backgroundColor: "#00BCD4", borderColor: "#00BCD4" },
   tabText: {
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
     color: "#333",
   },
-  filtersContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  picker: {
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  tableRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    alignItems: "center",
-  },
-  sessionInfoContainer: {
-    flex: 3,
-    paddingRight: 10,
-    zIndex: 1,
-  },
-  sessionTime: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#555",
-  },
-  sessionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 5,
-    color: "rgb(0, 105, 115)",
-  },
-  speakersContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    flex: 1,
-    flexWrap: "wrap",
-    gap: 5,
-    zIndex: 0,
-  },
-  speakerImage: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginLeft: 5,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+
+  filtersContainer: { flexDirection: "row", justifyContent: "space-between" },
+  scrollContainer: { flex: 1 },
+
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+
   pickerButton: {
     borderColor: "#ccc",
     borderWidth: 1,
@@ -599,10 +805,7 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderWidth: 1,
   },
-  pickerAndroid: {
-    height: 50,
-    width: "50%",
-  },
+  pickerAndroid: { height: 50, width: "50%" },
 
   calendarContainer: {
     flexDirection: "row",
@@ -612,47 +815,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#e6e6e6",
   },
-
   hoursColumn: {
     width: 70,
     backgroundColor: "#fafafa",
     borderRightWidth: 1,
     borderRightColor: "#eee",
   },
-
-  hourRow: {
-    justifyContent: "flex-start",
-    paddingTop: 6,
-    paddingLeft: 8,
-  },
-
-  hourText: {
-    fontSize: 12,
-    color: "#666",
-  },
-
-  calendarGridWrapper: {
-    flex: 1,
-  },
-
-  calendarGrid: {
-    position: "relative",
-    backgroundColor: "#fff",
-  },
-
+  hourRow: { justifyContent: "flex-start", paddingTop: 6, paddingLeft: 8 },
+  hourText: { fontSize: 12, color: "#666" },
+  calendarGridWrapper: { flex: 1 },
+  calendarGrid: { position: "relative", backgroundColor: "#fff" },
   hourLine: {
     position: "absolute",
     left: 0,
     right: 0,
     height: 1,
     backgroundColor: "#f0f0f0",
-  },
-
-  sessionBlockHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
   },
 
   sessionBlock: {
@@ -662,21 +840,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 188, 212, 0.16)",
     borderWidth: 1,
     borderColor: "rgba(0, 188, 212, 0.35)",
+    overflow: "hidden",
   },
 
-  sessionBlockTime: {
-    flexShrink: 0, // la hora no se encoge
+  sessionBlockSpeakers: {
+    marginTop: 4,
     fontSize: 11,
-    color: "#006973",
     fontWeight: "700",
-    textAlign: "right",
-  },
-
-  sessionBlockTitle: {
-    flex: 1, // título ocupa lo disponible
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#003f45",
+    color: "#1f1f1f",
   },
 
   sessionBlockMeta: {
@@ -685,46 +856,65 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  subMore: { marginTop: 4, fontSize: 10, fontWeight: "900", color: "#006973" },
+
   sessionModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
-
   sessionModalCard: {
     backgroundColor: "#fff",
     padding: 16,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
+  sessionModalTitle: { fontSize: 18, fontWeight: "800", marginBottom: 8 },
+  sessionModalLine: { fontSize: 14, marginTop: 6, color: "#333" },
 
-  sessionModalTitle: {
-    fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-
-  sessionModalLine: {
-    fontSize: 14,
-    marginTop: 6,
-    color: "#333",
-  },
-
-  sessionModalDesc: {
+  subModalTitle: {
     marginTop: 10,
     fontSize: 14,
-    color: "#444",
-    lineHeight: 20,
-  },
-  sessionBlockFeatured: {
-    backgroundColor: "rgba(255, 193, 7, 0.28)", // amarillo suave
-    borderColor: "rgba(255, 193, 7, 0.85)",
-    borderWidth: 2,
-  },
-  featuredLabel: {
-    marginTop: 4,
-    fontSize: 11,
     fontWeight: "800",
-    color: "#8a6d00",
+    color: "#333",
+  },
+  subModalItem: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#eee",
+    backgroundColor: "#fafafa",
+  },
+  subModalItemTitle: { fontSize: 13, fontWeight: "800", color: "#003f45" },
+  subModalItemTime: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#006973",
+  },
+  subModalItemSpeakers: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#1f1f1f",
+  },
+
+  sessionBlockTimeLeft: {
+    fontSize: 11,
+    color: "#006973",
+    fontWeight: "800",
+    textAlign: "left",
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+
+  sessionBlockTitleFull: {
+    width: "100%",
+    alignSelf: "stretch",
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#003f45",
+    lineHeight: 16,
   },
 });
