@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { ActivityIndicator, Button, List, Text } from "react-native-paper";
 import WebView from "react-native-webview";
+
 import { fetchNewsById, News } from "@/services/api/newsService";
 import {
   createAttendee,
@@ -19,65 +20,121 @@ import {
 import { searchMembers } from "@/services/api/memberService";
 import { useAuth } from "@/context/AuthContext";
 
+/**
+ * Normaliza URLs para evitar problemas típicos en iOS/WebView
+ * - corrige doble encoding (%2520 -> %20)
+ * - reemplaza espacios por %20
+ */
 function normalizeMediaUrl(url: any): string | null {
   if (typeof url !== "string") return null;
 
   let u = url.trim();
   if (!u || u.toLowerCase() === "null") return null;
 
-  // %25XX -> %XX (por ejemplo %2520 -> %20)
+  // %25XX -> %XX (ej: %2520 -> %20)
   u = u.replace(/%25([0-9A-Fa-f]{2})/g, "%$1");
 
-  // espacios sueltos -> %20
+  // espacios -> %20
   u = u.replace(/ /g, "%20");
 
   return u;
 }
 
+/**
+ * Convierte <video src="..."></video> a un bloque robusto con:
+ * - <video controls playsinline webkit-playsinline preload="metadata" muted>
+ * - <source src="..." type="video/mp4" />
+ * y agrega overlay "Cargando" + "Toca para reproducir"
+ *
+ * Además:
+ * - normaliza <source src="..."> si ya viene incluido
+ */
 function normalizeVideos(html: string) {
   if (!html) return html;
 
-  // Caso 1: <video src="..."></video>
+  // Caso A: <video ... src="...">...</video>  (sin <source>)
   let out = html.replace(
     /<video([^>]*?)\ssrc="([^"]+)"([^>]*)>\s*<\/video>/gi,
     (_match, pre, src, post) => {
       const safeSrc = normalizeMediaUrl(src);
-      if (!safeSrc) return ""; // no renderizar videos rotos
+      if (!safeSrc) return "";
 
-      const prePost = `${pre} ${post}`;
-
-      // Unifica style
-      const styleMatch = prePost.match(/\sstyle="([^"]*)"/i);
-      const existingStyle = styleMatch?.[1] ?? "";
-      const mergedStyle =
-        `${existingStyle}; max-width:100%; display:block; margin:10px auto; background:#000;`
-          .replace(/;;+/g, ";")
-          .trim();
-
-      // Quitamos el style anterior para no duplicar y lo ponemos mergeado
-      const prePostNoStyle = prePost.replace(/\sstyle="[^"]*"/i, "");
+      // Quitamos atributos que no queremos duplicar o que estorban
+      const rawAttrs = `${pre || ""} ${post || ""}`
+        .replace(/\sstyle="[^"]*"/gi, "")
+        .replace(/\sautoplay(="")?/gi, "")
+        .replace(/\sloop(="")?/gi, "")
+        .replace(/\smuted(="")?/gi, "")
+        .replace(/\splaysinline(="")?/gi, "")
+        .replace(/\swebkit-playsinline(="")?/gi, "")
+        .replace(/\spreload="[^"]*"/gi, "")
+        .replace(/\scontrols(="")?/gi, "")
+        .trim();
 
       return `
-<video ${prePostNoStyle}
-  controls
-  muted
-  playsinline
-  webkit-playsinline
-  preload="metadata"
-  style="${mergedStyle}"
->
-  <source src="${safeSrc}" type="video/mp4" />
-</video>
+<div class="videoWrap">
+  <video ${rawAttrs}
+    controls
+    muted
+    playsinline
+    webkit-playsinline
+    preload="metadata"
+  >
+    <source src="${safeSrc}" type="video/mp4" />
+  </video>
+
+  <div class="videoLoader">Cargando video…</div>
+  <button class="tapToPlay" type="button">Toca para reproducir</button>
+</div>
       `.trim();
     },
   );
 
+  // Caso B: normaliza cualquier <source src="..."> existente
   out = out.replace(
     /<source([^>]*?)\ssrc="([^"]+)"([^>]*?)\/?>/gi,
     (_m, a, src, b) => {
       const safeSrc = normalizeMediaUrl(src);
-      if (!safeSrc) return ""; // elimina source inválido
-      return `<source${a} src="${safeSrc}"${b} />`;
+      if (!safeSrc) return "";
+      const attrs = `${a || ""} ${b || ""}`.trim();
+
+      // Si no tiene type, forzamos video/mp4 (siempre y cuando sea mp4 en tu backend)
+      const hasType = /type\s*=/i.test(attrs);
+      return `<source${a || ""} src="${safeSrc}"${b || ""}${
+        hasType ? "" : ' type="video/mp4"'
+      } />`;
+    },
+  );
+
+  // Caso C: si existe <video>...</video> sin wrapper, lo envolvemos
+  // (evita envolver si ya viene dentro de un .videoWrap)
+  out = out.replace(
+    /(<div[^>]*class="[^"]*videoWrap[^"]*"[^>]*>[\s\S]*?<\/div>)|(<video[\s\S]*?<\/video>)/gi,
+    (match, wrapped, plainVideo) => {
+      if (wrapped) return wrapped;
+      if (!plainVideo) return match;
+
+      let fixed = plainVideo;
+
+      // Asegura atributos iOS
+      if (!/controls/i.test(fixed))
+        fixed = fixed.replace("<video", "<video controls");
+      if (!/muted/i.test(fixed))
+        fixed = fixed.replace("<video", "<video muted");
+      if (!/playsinline/i.test(fixed))
+        fixed = fixed.replace("<video", "<video playsinline");
+      if (!/webkit-playsinline/i.test(fixed))
+        fixed = fixed.replace("<video", "<video webkit-playsinline");
+      if (!/preload=/i.test(fixed))
+        fixed = fixed.replace("<video", '<video preload="metadata"');
+
+      return `
+<div class="videoWrap">
+  ${fixed}
+  <div class="videoLoader">Cargando video…</div>
+  <button class="tapToPlay" type="button">Toca para reproducir</button>
+</div>
+      `.trim();
     },
   );
 
@@ -90,19 +147,71 @@ function wrapHtml(bodyHtml: string) {
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial; padding: 0; margin: 0; }
       img { max-width: 100%; height: auto; }
-      video { background: #000; width: 100%; }
       a { color: #007BFF; }
+
+      .videoWrap { position: relative; width: 100%; margin: 10px auto; }
+      .videoWrap video { width: 100%; max-width: 100%; display: block; background: #000; }
+      .videoLoader {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        background: rgba(0,0,0,0.35);
+        color: #fff; font-size: 16px; font-family: Arial;
+        pointer-events: none;
+      }
+      .tapToPlay {
+        position: absolute; inset: 0;
+        display: none;
+        border: 0; background: rgba(0,0,0,0.35);
+        color: #fff; font-size: 16px; font-family: Arial;
+      }
     </style>
   </head>
   <body>
     ${bodyHtml || ""}
+
+    <script>
+      (function () {
+        function initWrap(wrap) {
+          var v = wrap.querySelector("video");
+          var loader = wrap.querySelector(".videoLoader");
+          var tapBtn = wrap.querySelector(".tapToPlay");
+          if (!v || !loader || !tapBtn) return;
+
+          function hideAll() { loader.style.display = "none"; tapBtn.style.display = "none"; }
+          function showLoader(txt){ loader.style.display = "flex"; loader.innerText = txt || "Cargando video…"; tapBtn.style.display = "none"; }
+          function showTap(txt){ loader.style.display = "none"; tapBtn.style.display = "block"; if (txt) tapBtn.innerText = txt; }
+
+          showLoader("Cargando video…");
+
+          var fallback = setTimeout(function(){ showTap(); }, 6000);
+
+          ["loadedmetadata","loadeddata","canplay","playing"].forEach(function(ev){
+            v.addEventListener(ev, function(){
+              clearTimeout(fallback);
+              hideAll();
+            }, { once: true });
+          });
+
+          v.addEventListener("waiting", function(){ showLoader("Cargando…"); });
+          v.addEventListener("stalled", function(){ showLoader("La conexión está lenta…"); });
+          v.addEventListener("error", function(){
+            clearTimeout(fallback);
+            showTap("No se pudo cargar. Toca para reintentar");
+          });
+
+          tapBtn.addEventListener("click", function () {
+            try { v.play(); } catch(e) {}
+          });
+        }
+
+        var wraps = document.querySelectorAll(".videoWrap");
+        for (var i = 0; i < wraps.length; i++) initWrap(wraps[i]);
+      })();
+    </script>
   </body>
 </html>
   `.trim();
@@ -111,45 +220,52 @@ function wrapHtml(bodyHtml: string) {
 function NoveltyScreen() {
   const [news, setNews] = useState<News | null>(null);
   const [loading, setLoading] = useState(true);
-  const { newId } = useLocalSearchParams();
 
+  const { newId } = useLocalSearchParams();
   const { userId } = useAuth();
+
   const [attendedId, setAttendeeId] = useState("");
   const [isRegistered, setIsRegistered] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+
   const [memberId, setMemberId] = useState("");
   const [isMemberActive, setIsMemberActive] = useState(false);
 
   useEffect(() => {
     if (newId) getNews();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newId]);
 
   useEffect(() => {
-    getMemberStatus();
+    if (userId) getMemberStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
     if (news?.eventId) getAttendeeData(news.eventId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [news?.eventId]);
 
   const handleOpenDocument = useCallback(async (url: string) => {
+    const safe = normalizeMediaUrl(url);
+    if (!safe) return;
+
     try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        console.warn("No se puede abrir la URL:", url);
-      }
+      const supported = await Linking.canOpenURL(safe);
+      if (supported) await Linking.openURL(safe);
+      else console.warn("No se puede abrir la URL:", safe);
     } catch (err) {
       console.error("Error al abrir documento:", err);
     }
   }, []);
 
   const handleShareDocument = useCallback(async (url: string) => {
+    const safe = normalizeMediaUrl(url);
+    if (!safe) return;
+
     try {
       await Share.share({
-        url,
-        message: `Échale un vistazo a este documento: ${url}`,
+        url: safe,
+        message: `Échale un vistazo a este documento: ${safe}`,
       });
     } catch (err) {
       console.error("Error al compartir documento:", err);
@@ -161,7 +277,7 @@ function NoveltyScreen() {
       const filters = { userId };
       const response = await searchMembers(filters);
       if (response.status === "success" && response.data.items.length > 0) {
-        setIsMemberActive(response.data.items[0].memberActive);
+        setIsMemberActive(Boolean(response.data.items[0].memberActive));
         setMemberId(response.data.items[0]._id);
       }
     } catch (error) {
@@ -178,6 +294,7 @@ function NoveltyScreen() {
         setIsRegistered(true);
       } else {
         setIsRegistered(false);
+        setAttendeeId("");
       }
     } catch (error) {
       console.error("Error al obtener el estado de inscripción:", error);
@@ -196,82 +313,77 @@ function NoveltyScreen() {
   };
 
   const modifiedContent = useMemo(() => {
-    const base = news?.eventId
+    if (!news) return wrapHtml("");
+
+    // Inyecta link para inscripción SOLO si hay eventId
+    const base = news.eventId
       ? news.content.replace(
           /(- Miembros activos ACHO - GRATIS)(\s*<\/br>)/,
-          `$1 
-        ${
-          isMemberActive
-            ? `<a href="#" id="registerMember" style="color: #007BFF; text-decoration: underline; margin-left: 10px;">
-                ${
-                  isRegistered
-                    ? "Ya estás inscrito, cancelar inscripción"
-                    : "Inscribirme como miembro activo"
-                }
-              </a>`
-            : ""
-        }$2`
-      ) +
-      `
-    <script>
-      document.addEventListener("DOMContentLoaded", function() {
-        var registerLink = document.getElementById("registerMember");
-        function updateRegisterText(isRegistered) {
-          if (registerLink) {
-            registerLink.innerText = isRegistered
-              ? "Ya estás inscrito, cancelar inscripción"
-              : "Inscribirme como miembro activo";
-          }
-        }
+          `$1
+          ${
+            isMemberActive
+              ? `<a href="#" id="registerMember" style="color:#007BFF; text-decoration:underline; margin-left:10px;">
+                  ${
+                    isRegistered
+                      ? "Ya estás inscrito, cancelar inscripción"
+                      : "Inscribirme como miembro activo"
+                  }
+                </a>`
+              : ""
+          }$2`,
+        ) +
+        `
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var registerLink = document.getElementById("registerMember");
 
-        if (registerLink) {
-          registerLink.addEventListener("click", function(event) {
-            event.preventDefault();
-            if (registerLink.innerText === "Inscribirme como miembro activo") {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                action: "register",
-                userId: "${userId}",
-                eventId: "${news.eventId}"
-              }));
-            } else if (registerLink.innerText === "Ya estás inscrito, cancelar inscripción") {
-              window.ReactNativeWebView.postMessage(JSON.stringify({
-                action: "unregister",
-                attendeeId: "${attendedId}"
-              }));
-            }
-          });
-        }
+    function updateRegisterText(isRegistered) {
+      if (!registerLink) return;
+      registerLink.innerText = isRegistered
+        ? "Ya estás inscrito, cancelar inscripción"
+        : "Inscribirme como miembro activo";
+    }
 
-        window.addEventListener("message", function(event) {
-          try {
-            var message = JSON.parse(event.data);
-            if (message.action === "updateRegisterStatus") {
-              updateRegisterText(message.isRegistered);
-            }
-          } catch (error) {
-            console.error("Error al actualizar el estado de inscripción:", error);
-          }
-        });
+    if (registerLink) {
+      registerLink.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        if (registerLink.innerText === "Inscribirme como miembro activo") {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            action: "register",
+            userId: "${userId}",
+            eventId: "${news.eventId}"
+          }));
+        } else {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            action: "unregister",
+            attendeeId: "${attendedId}"
+          }));
+        }
       });
-    </script>
-    `
-    : news?.content || "";
+    }
+
+    window.addEventListener("message", function(event) {
+      try {
+        var message = JSON.parse(event.data);
+        if (message.action === "updateRegisterStatus") {
+          updateRegisterText(message.isRegistered);
+        }
+      } catch (error) {}
+    });
+  });
+</script>
+        `
+      : news.content || "";
 
     const normalized = normalizeVideos(base);
     return wrapHtml(normalized);
-  }, [
-    news?.content,
-    news?.eventId,
-    isMemberActive,
-    isRegistered,
-    userId,
-    attendedId,
-  ]);
+  }, [news, isMemberActive, isRegistered, userId, attendedId]);
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator animating={true} size="large" />
+        <ActivityIndicator animating size="large" />
       </View>
     );
   }
@@ -286,30 +398,32 @@ function NoveltyScreen() {
 
   return (
     <View style={styles.screen}>
-      {typeof news.featuredImage === "string" && (
+      {typeof news.featuredImage === "string" && news.featuredImage && (
         <Image
           source={{ uri: news.featuredImage }}
           style={styles.headerImage}
         />
       )}
+
       <View style={styles.contentContainer}>
         <Text style={styles.title}>{news.title}</Text>
+
         <WebView
           originWhitelist={["*"]}
           source={{ html: modifiedContent }}
           style={{ flex: 1 }}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
+          javaScriptEnabled
+          domStorageEnabled
           allowsInlineMediaPlayback
           allowsFullscreenVideo
-          mediaPlaybackRequiresUserAction={true}
+          // ✅ CLAVE iOS: permite reproducción sin tap cuando esté muted
+          mediaPlaybackRequiresUserAction={false}
           mixedContentMode="always"
           onMessage={async (event) => {
             try {
               const message = JSON.parse(event.nativeEvent.data);
 
               if (message.action === "register") {
-                setIsLoading(true);
                 await createAttendee({
                   userId: message.userId,
                   eventId: message.eventId,
@@ -317,11 +431,10 @@ function NoveltyScreen() {
                   attended: false,
                 });
                 setIsRegistered(true);
-                getAttendeeData(message.eventId);
+                await getAttendeeData(message.eventId);
               }
 
               if (message.action === "unregister") {
-                setIsLoading(true);
                 await deleteAttendee(attendedId);
                 setIsRegistered(false);
                 setAttendeeId("");
@@ -329,14 +442,12 @@ function NoveltyScreen() {
             } catch (error) {
               console.error(
                 "Error al procesar el mensaje desde WebView:",
-                error
+                error,
               );
-            } finally {
-              setIsLoading(false);
             }
           }}
         />
-        {/* Nueva sección de Documentos */}
+
         {news.documents && news.documents.length > 0 && (
           <View style={styles.documentsContainer}>
             <Text style={styles.documentsTitle}>Documentos</Text>
