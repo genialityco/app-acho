@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function ContactSupportScreen() {
   // Funciones para abrir los enlaces
   const openWhatsApp = () => {
-    const phoneNumber = '573183514415'; // Reemplaza con tu número de WhatsApp (código de país + número)
+    const phoneNumber = '573155026643'; // Reemplaza con tu número de WhatsApp (código de país + número)
     const url = `whatsapp://send?phone=${phoneNumber}&text=Hola, necesito asistencia`;
     Linking.openURL(url).catch(() => {
       alert('Asegúrate de tener WhatsApp instalado.');
@@ -13,7 +13,7 @@ export default function ContactSupportScreen() {
   };
 
   const makePhoneCall = () => {
-    const phoneNumber = 'tel:+573183514415'; // Reemplaza con tu número de teléfono
+    const phoneNumber = 'tel:+573155026643'; // Reemplaza con tu número de teléfono
     Linking.openURL(phoneNumber);
   };
 
