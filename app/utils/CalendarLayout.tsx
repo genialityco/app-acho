@@ -8,9 +8,13 @@ export type CalendarItem = {
   cols: number;
 };
 
-export const MIN_HOUR = 7; // hora inicio del calendario
-export const MAX_HOUR = 20; // hora fin del calendario
-export const PX_PER_MIN = 8; // escala vertical
+export type CalendarLayoutResult = {
+  items: CalendarItem[];
+  minHour: number;
+  maxHour: number;
+};
+
+export const PX_PER_MIN = 12; // escala vertical
 
 // ✅ Gap visual entre bloques para evitar “montajes” por redondeo
 const VERTICAL_GAP_PX = 8;
@@ -21,16 +25,29 @@ const clamp = (n: number, min: number, max: number) =>
 
 /**
  * Asigna columnas para sesiones que se solapan (interval graph coloring simple).
- * Retorna items con {top,height,col,cols} para dibujar en layout absoluto.
+ * Retorna items con {top,height,col,cols} para dibujar en layout absoluto
+ * + minHour/maxHour dinámicos basados en primera/última sesión.
  */
-export function buildCalendarLayout(sessions: any[]): CalendarItem[] {
+export function buildCalendarLayout(sessions: any[]): CalendarLayoutResult {
+  if (!sessions || sessions.length === 0) {
+    return { items: [], minHour: 7, maxHour: 20 }; // fallback
+  }
+
   const sorted = [...sessions].sort(
     (a, b) =>
       dayjs(a.startDateTime).valueOf() - dayjs(b.startDateTime).valueOf(),
   );
 
-  const minDay = MIN_HOUR * 60;
-  const maxDay = MAX_HOUR * 60;
+  // ✅ min/max dinámicos según primera y última sesión
+  const firstStart = dayjs(sorted[0].startDateTime);
+  const lastEnd = dayjs(sorted[sorted.length - 1].endDateTime);
+
+  // redondeo: min hacia abajo, max hacia arriba
+  const minHour = Math.max(0, firstStart.hour()); // o firstStart.hour()
+  const maxHour = Math.min(23, lastEnd.add(59, "minute").hour()); // ceiling a la hora
+
+  const minDay = minHour * 60;
+  const maxDay = (maxHour + 1) * 60; // incluye esa última hora completa
 
   // Convertimos a intervalos
   const intervals = sorted.map((s) => {
@@ -81,26 +98,20 @@ export function buildCalendarLayout(sessions: any[]): CalendarItem[] {
 
     const cols = activeCols.length;
 
-    // Convertimos a layout (top/height) limitado al rango MIN_HOUR..MAX_HOUR
+    // Convertimos a layout (top/height) limitado al rango minHour..maxHour
     for (const it of assigned) {
       // ✅ clamp al rango visible
       const startMin = clamp(it.startMin, minDay, maxDay);
       const endMin = clamp(it.endMin, minDay, maxDay);
 
-      // ✅ si NO intersecta el rango horario, NO lo dibujes (evita bloques fantasma)
-      if (it.endMin <= minDay || it.startMin >= maxDay) {
-        continue;
-      }
+      // ✅ si NO intersecta el rango horario, NO lo dibujes
+      if (it.endMin <= minDay || it.startMin >= maxDay) continue;
 
       // ✅ si quedó inválido tras clamp, no dibujar
-      if (endMin <= startMin) {
-        continue;
-      }
+      if (endMin <= startMin) continue;
 
-      // ✅ redondea para evitar solapes por decimales
       const top = Math.round((startMin - minDay) * PX_PER_MIN);
 
-      // ✅ resta gap para que nunca “toquen”
       const rawHeight = (endMin - startMin) * PX_PER_MIN;
       const height = Math.max(18, Math.round(rawHeight - VERTICAL_GAP_PX));
 
@@ -116,5 +127,5 @@ export function buildCalendarLayout(sessions: any[]): CalendarItem[] {
     i = j;
   }
 
-  return result;
+  return { items: result, minHour, maxHour };
 }
