@@ -7,6 +7,8 @@ import {
   Platform,
   Modal,
   Button,
+  Linking,
+  Alert,
 } from "react-native";
 import { Text, ActivityIndicator, Chip, IconButton } from "react-native-paper";
 import { Picker } from "@react-native-picker/picker";
@@ -17,12 +19,7 @@ import "dayjs/locale/es";
 import { searchAgendas } from "@/services/api/agendaService";
 import { fetchSpeakers, searchSpeakers } from "@/services/api/speakerService";
 
-import {
-  buildCalendarLayout,
-  MIN_HOUR,
-  MAX_HOUR,
-  PX_PER_MIN,
-} from "@/app/utils/CalendarLayout";
+import { buildCalendarLayout, PX_PER_MIN } from "@/app/utils/CalendarLayout";
 
 export default function Program() {
   const { eventId } = useLocalSearchParams();
@@ -46,6 +43,7 @@ export default function Program() {
 
   // ✅ Indice global: speakerId -> speakerName
   const [speakerIndex, setSpeakerIndex] = useState<Record<string, string>>({});
+  const [showSpecialNotice, setShowSpecialNotice] = useState(true);
 
   const buildSpeakerIndexFromList = (list: any[] = []) => {
     const idx: Record<string, string> = {};
@@ -153,10 +151,6 @@ export default function Program() {
         return;
       }
 
-      // ⚠️ si tu API trae muchas agendas, aquí puedes decidir:
-      // - usar todas (flatten) o
-      // - usar solo la primera
-      // Yo usaré TODAS para que no “se repita la misma”.
       const agendaItems = response?.data?.items || [];
       const allSessionsRaw = agendaItems.flatMap((a: any) => a?.sessions || []);
 
@@ -217,6 +211,20 @@ export default function Program() {
   useEffect(() => {
     fetchAgenda();
   }, [eventId]);
+
+  // ✅ Mensaje fijo para evento especial (SIN ocultar agenda)
+  const SPECIAL_EVENT_ID = "6876c799539413079ae753a7";
+  const HEMATOLOGY_URL = "https://www.hematology.org/Highlights-LA";
+
+  const openHematologyLink = async () => {
+    try {
+      const supported = await Linking.canOpenURL(HEMATOLOGY_URL);
+      if (supported) await Linking.openURL(HEMATOLOGY_URL);
+      else Alert.alert("Error", "No se pudo abrir el enlace.");
+    } catch (e) {
+      Alert.alert("Error", "Ocurrió un problema al intentar abrir el enlace.");
+    }
+  };
 
   // =========================================================
   // Filters
@@ -288,10 +296,6 @@ export default function Program() {
           // ✅ AQUÍ SE RESUELVEN NOMBRES A PARTIR DE IDS
           const names = getSpeakerNames(sub?.speakers || []);
 
-          // Debug útil si quieres:
-          // console.log("SUB RAW speakers =>", sub?.speakers);
-          // console.log("SUB RESOLVED =>", names);
-
           return (
             <View
               key={sub._id || idx}
@@ -330,8 +334,11 @@ export default function Program() {
       );
     }
 
-    const items = buildCalendarLayout(filteredSessions);
-    const totalMinutes = (MAX_HOUR - MIN_HOUR) * 60;
+    // ✅ Mantengo tu firma actual (si buildCalendarLayout retorna solo items en tu proyecto,
+    // vuelve a "const items = buildCalendarLayout(filteredSessions);" y usa tus horas fijas)
+    const { items, minHour, maxHour } = buildCalendarLayout(filteredSessions);
+
+    const totalMinutes = (maxHour - minHour + 1) * 60;
     const contentHeight = totalMinutes * PX_PER_MIN;
 
     return (
@@ -341,8 +348,8 @@ export default function Program() {
       >
         {/* Columna de horas */}
         <View style={styles.hoursColumn}>
-          {Array.from({ length: MAX_HOUR - MIN_HOUR + 1 }).map((_, idx) => {
-            const hour = MIN_HOUR + idx;
+          {Array.from({ length: maxHour - minHour + 1 }).map((_, idx) => {
+            const hour = minHour + idx;
             return (
               <View
                 key={hour}
@@ -357,14 +364,14 @@ export default function Program() {
         {/* Área calendario */}
         <View style={styles.calendarGridWrapper}>
           <View style={[styles.calendarGrid, { height: contentHeight }]}>
-            {Array.from({ length: MAX_HOUR - MIN_HOUR + 1 }).map((_, idx) => (
+            {Array.from({ length: maxHour - minHour + 1 }).map((_, idx) => (
               <View
                 key={idx}
                 style={[styles.hourLine, { top: idx * 60 * PX_PER_MIN }]}
               />
             ))}
 
-            {items.map((it, index) => {
+            {items.map((it: any, index: number) => {
               const usableWidth = Math.max(0, calendarWidth - 70);
               const gap = 6;
               const colWidth =
@@ -423,86 +430,94 @@ export default function Program() {
           </View>
         </View>
 
-        {/* Modal detalle */}
+        {/* ✅ Modal detalle (con altura limitada + scroll interno) */}
         <Modal visible={showSessionModal} animationType="slide" transparent>
           <View style={styles.sessionModalOverlay}>
             <View style={styles.sessionModalCard}>
-              <Text style={styles.sessionModalTitle}>
-                {selectedSession?.title}
-              </Text>
-
-              <Text style={styles.sessionModalLine}>
-                🕒{" "}
-                {selectedSession
-                  ? `${dayjs(selectedSession.startDateTime).format("HH:mm")} - ${dayjs(
-                      selectedSession.endDateTime,
-                    ).format("HH:mm")}`
-                  : ""}
-              </Text>
-
-              {!!selectedSession?.room && (
-                <Text style={styles.sessionModalLine}>
-                  📍 Salón: {selectedSession.room}
+              <ScrollView
+                style={styles.sessionModalScroll}
+                contentContainerStyle={styles.sessionModalScrollContent}
+                showsVerticalScrollIndicator
+              >
+                <Text style={styles.sessionModalTitle}>
+                  {selectedSession?.title}
                 </Text>
-              )}
 
-              {!!selectedSession?.moduleId?.title && (
                 <Text style={styles.sessionModalLine}>
-                  🧩 Módulo: {selectedSession.moduleId.title}
+                  🕒{" "}
+                  {selectedSession
+                    ? `${dayjs(selectedSession.startDateTime).format(
+                        "HH:mm",
+                      )} - ${dayjs(selectedSession.endDateTime).format("HH:mm")}`
+                    : ""}
                 </Text>
-              )}
 
-              {(() => {
-                const names = getSpeakerNames(selectedSession?.speakers || []);
-                if (!names) return null;
-                return (
+                {!!selectedSession?.room && (
                   <Text style={styles.sessionModalLine}>
-                    🎤 Speakers: {names}
+                    📍 Salón: {selectedSession.room}
                   </Text>
-                );
-              })()}
+                )}
 
-              {!!selectedSession?.subSessions?.length && (
-                <View style={{ marginTop: 12 }}>
-                  <Text style={styles.subModalTitle}>Actividades</Text>
+                {!!selectedSession?.moduleId?.title && (
+                  <Text style={styles.sessionModalLine}>
+                    🧩 Módulo: {selectedSession.moduleId.title}
+                  </Text>
+                )}
 
-                  {selectedSession.subSessions
-                    .slice()
-                    .sort((a: any, b: any) =>
-                      dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime))
-                        ? -1
-                        : 1,
-                    )
-                    .map((sub: any, i: number) => {
-                      const s = dayjs(sub.startDateTime);
-                      const e = dayjs(sub.endDateTime);
-                      const subNames = getSpeakerNames(sub?.speakers || []);
-                      return (
-                        <View key={sub._id || i} style={styles.subModalItem}>
-                          <Text
-                            style={styles.subModalItemTitle}
-                            numberOfLines={2}
-                          >
-                            {sub.title}
-                          </Text>
-                          <Text style={styles.subModalItemTime}>
-                            {s.format("HH:mm")} - {e.format("HH:mm")}
-                          </Text>
-                          {!!subNames && (
+                {(() => {
+                  const names = getSpeakerNames(
+                    selectedSession?.speakers || [],
+                  );
+                  if (!names) return null;
+                  return (
+                    <Text style={styles.sessionModalLine}>
+                      🎤 Speakers: {names}
+                    </Text>
+                  );
+                })()}
+
+                {!!selectedSession?.subSessions?.length && (
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={styles.subModalTitle}>Actividades</Text>
+
+                    {selectedSession.subSessions
+                      .slice()
+                      .sort((a: any, b: any) =>
+                        dayjs(a.startDateTime).isBefore(dayjs(b.startDateTime))
+                          ? -1
+                          : 1,
+                      )
+                      .map((sub: any, i: number) => {
+                        const s = dayjs(sub.startDateTime);
+                        const e = dayjs(sub.endDateTime);
+                        const subNames = getSpeakerNames(sub?.speakers || []);
+                        return (
+                          <View key={sub._id || i} style={styles.subModalItem}>
                             <Text
-                              style={styles.subModalItemSpeakers}
+                              style={styles.subModalItemTitle}
                               numberOfLines={2}
                             >
-                              🎤 {subNames}
+                              {sub.title}
                             </Text>
-                          )}
-                        </View>
-                      );
-                    })}
-                </View>
-              )}
+                            <Text style={styles.subModalItemTime}>
+                              {s.format("HH:mm")} - {e.format("HH:mm")}
+                            </Text>
+                            {!!subNames && (
+                              <Text
+                                style={styles.subModalItemSpeakers}
+                                numberOfLines={2}
+                              >
+                                🎤 {subNames}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      })}
+                  </View>
+                )}
+              </ScrollView>
 
-              <View style={{ marginTop: 12 }}>
+              <View style={styles.sessionModalFooter}>
                 <Button
                   title="Cerrar"
                   onPress={() => setShowSessionModal(false)}
@@ -689,12 +704,71 @@ export default function Program() {
 
       {/* Agenda */}
       <ScrollView style={styles.scrollContainer}>{renderAgenda()}</ScrollView>
+
+      {/* ✅ Aviso fijo abajo para evento especial (sin ocultar agenda) */}
+      {String(eventId) === SPECIAL_EVENT_ID && showSpecialNotice && (
+        <View style={styles.specialNotice}>
+          <IconButton
+            icon="close"
+            size={18}
+            onPress={() => setShowSpecialNotice(false)}
+            style={styles.specialNoticeClose}
+          />
+
+          <Text style={styles.specialNoticeText}>
+            La programación está sujeta a cambios.
+          </Text>
+
+          <Text style={styles.specialNoticeText}>
+            Por favor, consulte la versión más actualizada{" "}
+            <Text style={styles.specialNoticeLink} onPress={openHematologyLink}>
+              aqui
+            </Text>
+            .
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 12, backgroundColor: "#f5f5f5" },
+  specialNotice: {
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#00BCD4",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    position: "relative", // ✅ para que la X se ubique bien
+  },
+
+  specialNoticeClose: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    zIndex: 10,
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // ✅ Notice superior para evento especial
+
+  specialNoticeText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: "#333",
+    textAlign: "center",
+    fontWeight: "700",
+  },
+  specialNoticeLink: {
+    color: "blue",
+    textDecorationLine: "underline",
+    fontWeight: "700",
+  },
 
   // ✅ Sub-sesiones por BLOQUES dentro del bloque padre
   subGridWrap: {
@@ -717,22 +791,24 @@ const styles = StyleSheet.create({
     borderColor: "rgba(0, 188, 212, 0.35)",
   },
 
+  // ✅ Subsesiones: horas / titulo / speakers
   subSessionTime: {
-    fontSize: 10,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "900",
     color: "#006973",
   },
-
   subSessionTitle: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: "800",
     color: "#003f45",
   },
-
   subSessionSpeakers: {
     marginTop: 2,
-    fontSize: 10,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#1f1f1f",
   },
@@ -752,7 +828,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chip: { margin: 2 },
-  textChip: { fontSize: 12 },
+  textChip: { fontSize: 14, lineHeight: 18 },
 
   dayTab: {
     padding: 8,
@@ -765,8 +841,9 @@ const styles = StyleSheet.create({
   },
   selectedDayTab: { backgroundColor: "#00BCD4", borderColor: "#00BCD4" },
   tabText: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "800",
     textAlign: "center",
     color: "#333",
   },
@@ -822,7 +899,8 @@ const styles = StyleSheet.create({
     borderRightColor: "#eee",
   },
   hourRow: { justifyContent: "flex-start", paddingTop: 6, paddingLeft: 8 },
-  hourText: { fontSize: 12, color: "#666" },
+  hourText: { fontSize: 14, lineHeight: 18, color: "#666" },
+
   calendarGridWrapper: { flex: 1 },
   calendarGrid: { position: "relative", backgroundColor: "#fff" },
   hourLine: {
@@ -843,38 +921,84 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
+  // ✅ Sesión principal: hora / titulo / speakers
+  sessionBlockTimeLeft: {
+    fontSize: 14,
+    lineHeight: 18,
+    color: "#006973",
+    fontWeight: "800",
+    textAlign: "left",
+    alignSelf: "flex-start",
+    marginBottom: 4,
+  },
+  sessionBlockTitleFull: {
+    width: "100%",
+    alignSelf: "stretch",
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: "800",
+    color: "#003f45",
+  },
   sessionBlockSpeakers: {
     marginTop: 4,
-    fontSize: 11,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#1f1f1f",
   },
 
   sessionBlockMeta: {
-    fontSize: 11,
+    fontSize: 14,
+    lineHeight: 18,
     color: "#4f4f4f",
     marginTop: 4,
   },
 
-  subMore: { marginTop: 4, fontSize: 10, fontWeight: "900", color: "#006973" },
+  subMore: {
+    marginTop: 4,
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: "900",
+    color: "#006973",
+  },
 
   sessionModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
+
+  // ✅ Mantiene tu diseño y SOLO limita altura para permitir scroll
   sessionModalCard: {
     backgroundColor: "#fff",
     padding: 16,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
+    maxHeight: "80%",
   },
-  sessionModalTitle: { fontSize: 18, fontWeight: "800", marginBottom: 8 },
-  sessionModalLine: { fontSize: 14, marginTop: 6, color: "#333" },
+  sessionModalScroll: { flexGrow: 0 },
+  sessionModalScrollContent: { paddingBottom: 10 },
+  sessionModalFooter: { paddingTop: 10 },
+
+  // ✅ Modal: título / líneas / secciones
+  sessionModalTitle: {
+    fontSize: 20,
+    lineHeight: 26,
+    fontWeight: "800",
+    marginBottom: 8,
+    color: "#111",
+  },
+  sessionModalLine: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginTop: 6,
+    color: "#333",
+  },
 
   subModalTitle: {
     marginTop: 10,
-    fontSize: 14,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: "800",
     color: "#333",
   },
@@ -886,35 +1010,24 @@ const styles = StyleSheet.create({
     borderColor: "#eee",
     backgroundColor: "#fafafa",
   },
-  subModalItemTitle: { fontSize: 13, fontWeight: "800", color: "#003f45" },
+  subModalItemTitle: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: "800",
+    color: "#003f45",
+  },
   subModalItemTime: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#006973",
   },
   subModalItemSpeakers: {
     marginTop: 2,
-    fontSize: 11,
+    fontSize: 14,
+    lineHeight: 18,
     fontWeight: "700",
     color: "#1f1f1f",
-  },
-
-  sessionBlockTimeLeft: {
-    fontSize: 11,
-    color: "#006973",
-    fontWeight: "800",
-    textAlign: "left",
-    alignSelf: "flex-start",
-    marginBottom: 4,
-  },
-
-  sessionBlockTitleFull: {
-    width: "100%",
-    alignSelf: "stretch",
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#003f45",
-    lineHeight: 16,
   },
 });
