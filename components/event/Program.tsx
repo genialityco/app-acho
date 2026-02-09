@@ -251,7 +251,7 @@ export default function Program() {
     parentSession: any,
     parentBlockHeightPx: number,
   ) => {
-    console.log("🔽 Render SUBSESSIONS for:", parentSession?.subSessions);
+    //console.log("🔽 Render SUBSESSIONS for:", parentSession?.subSessions);
     const subSessions = Array.isArray(parentSession?.subSessions)
       ? parentSession.subSessions
       : [];
@@ -305,7 +305,7 @@ export default function Program() {
                 {s.format("HH:mm")} - {e.format("HH:mm")}
               </Text>
 
-              <Text style={styles.subSessionTitle} numberOfLines={2}>
+              <Text style={styles.subSessionTitle}>
                 {sub.title}
               </Text>
 
@@ -400,7 +400,7 @@ export default function Program() {
                     {dayjs(it.session.endDateTime).format("HH:mm")}
                   </Text>
 
-                  <Text style={styles.sessionBlockTitleFull} numberOfLines={3}>
+                  <Text style={styles.sessionBlockTitleFull}>
                     {it.session.title}
                   </Text>
 
@@ -495,7 +495,6 @@ export default function Program() {
                           <View key={sub._id || i} style={styles.subModalItem}>
                             <Text
                               style={styles.subModalItemTitle}
-                              numberOfLines={2}
                             >
                               {sub.title}
                             </Text>

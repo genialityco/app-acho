@@ -24,16 +24,18 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
+import { ImagePromoModal } from "@/components/ImagePromoModal"; // si lo sacas a componente
 
 const { width } = Dimensions.get("window");
 
 export default function ProtectedLayout() {
+  const [showPromo, setShowPromo] = useState(true);
   const { isLoggedIn, isLoading, userId } = useAuth();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [currentNotification, setCurrentNotification] = useState<any | null>(
-    null
+    null,
   );
   const { organization } = useOrganization();
   const notificationListener = useRef<Notifications.Subscription | null>(null);
@@ -55,7 +57,7 @@ export default function ProtectedLayout() {
   const registerAndSavePushToken = async () => {
     if (!Device.isDevice) {
       console.error(
-        "Debe usar un dispositivo físico para recibir notificaciones push."
+        "Debe usar un dispositivo físico para recibir notificaciones push.",
       );
       return;
     }
@@ -108,7 +110,7 @@ export default function ProtectedLayout() {
               text: "Aceptar",
               onPress: async () => await Updates.reloadAsync(),
             },
-          ]
+          ],
         );
       }
     } catch (error) {
@@ -117,74 +119,77 @@ export default function ProtectedLayout() {
   };
 
   const cleanIOSVersion = (versionString: string) => {
-    const match = versionString.match(/(\d+\.\d+\.\d+)/); 
+    const match = versionString.match(/(\d+\.\d+\.\d+)/);
     return match ? match[1] : "0.0.0";
   };
-  
 
   const compareVersions = (v1: string, v2: string): number => {
     const v1Parts = v1.split(".").map(Number);
     const v2Parts = v2.split(".").map(Number);
-  
+
     for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
       const num1 = v1Parts[i] || 0;
       const num2 = v2Parts[i] || 0;
-  
+
       if (num1 > num2) return 1;
       if (num1 < num2) return -1;
     }
     return 0;
   };
-  
+
   const checkStoreVersion = async () => {
     try {
       let storeUrl = "";
       let latestVersion = "0.0.0";
-  
+
       if (Device.osName === "iOS") {
         const response = await fetch(
-          `https://itunes.apple.com/lookup?bundleId=${Application.applicationId}`
+          `https://itunes.apple.com/lookup?bundleId=${Application.applicationId}`,
         );
         const data = await response.json();
         latestVersion = cleanIOSVersion(data.results[0]?.version ?? "0.0.0");
         storeUrl = data.results[0]?.trackViewUrl;
       } else if (Device.osName === "Android") {
         storeUrl = `https://play.google.com/store/apps/details?id=${Application.applicationId}`;
-        latestVersion = "1.0.8"
+        latestVersion = "1.0.8";
       }
-  
+
       // Obtenemos la versión actual desde OTA o la versión nativa
-      let currentVersion = Updates.runtimeVersion || Application.nativeApplicationVersion || "0.0.0";
-  
+      let currentVersion =
+        Updates.runtimeVersion ||
+        Application.nativeApplicationVersion ||
+        "0.0.0";
+
       // Si `Updates.runtimeVersion` es un hash, usamos `Application.nativeApplicationVersion`
       if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
         currentVersion = Application.nativeApplicationVersion || "0.0.0";
       }
-  
-      console.log(`📢 Versión instalada: ${currentVersion}, Versión en la tienda: ${latestVersion}`);
-  
+
+      console.log(
+        `📢 Versión instalada: ${currentVersion}, Versión en la tienda: ${latestVersion}`,
+      );
+
       // Comparar versiones numéricamente
       if (compareVersions(currentVersion, latestVersion) < 0) {
         Alert.alert(
           "Nueva versión disponible",
           "Debes actualizar la aplicación para continuar.",
-          [{ text: "Actualizar", onPress: () => Linking.openURL(storeUrl) }]
+          [{ text: "Actualizar", onPress: () => Linking.openURL(storeUrl) }],
         );
       }
     } catch (error) {
       console.error("❌ Error verificando la versión en la tienda:", error);
     }
   };
-  
+
   useEffect(() => {
     const verifyAppVersion = async () => {
       await checkForUpdates();
       await checkStoreVersion();
     };
-  
+
     verifyAppVersion();
   }, []);
-  
 
   useEffect(() => {
     async function prepareApp() {
@@ -230,12 +235,12 @@ export default function ProtectedLayout() {
       return () => {
         if (notificationListener.current) {
           Notifications.removeNotificationSubscription(
-            notificationListener.current
+            notificationListener.current,
           );
         }
         if (responseListener.current) {
           Notifications.removeNotificationSubscription(
-            responseListener.current
+            responseListener.current,
           );
         }
       };
@@ -316,7 +321,14 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-
+      <ImagePromoModal
+        visible={showPromo}
+        onClose={() => setShowPromo(false)}
+        imageUri={
+          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/imagenACHO.jpeg?alt=media&token=a33b3f58-8a98-41e3-9e0b-dcb079ad99d8"
+        } // <-- tu imagen
+        ctaUrl={"https://esmosummit2026.acho.com.co/registro/"}
+      />
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );
