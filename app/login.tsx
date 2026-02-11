@@ -41,7 +41,7 @@ export default function LoginScreen() {
     setIsLoggingIn(false);
 
     if (success) {
-      router.push("/(app)");
+      router.push("/(app)/(tabs)/home");
     }
   };
 

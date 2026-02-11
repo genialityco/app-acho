@@ -34,9 +34,9 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false); // Estado para visibilidad de contraseña
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  const { signUp, authError } = useAuth();
+  const { signUp, authError, uid } = useAuth();
   const { organization } = useOrganization();
 
   useEffect(() => {
@@ -61,44 +61,84 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     const { propertiesDefinition } = organizationData || {};
-    const { email, password } = formData;
 
+    // Validar solo los campos dinámicos que son requeridos según propertiesDefinition
     const requiredFields =
-      propertiesDefinition?.filter((field) => field.required) || [];
-    const missingFields = requiredFields.filter(
-      (field) => !formData[field.fieldName] || formData[field.fieldName] === ""
-    );
+      propertiesDefinition?.filter((field) => field.required && field.show) || [];
+    
+    const missingFields = requiredFields.filter((field) => {
+      const fieldValue = formData[field.fieldName];
+      
+      // Validación para checkboxes: deben estar checkeados (valor "true")
+      if (field.type === "checkbox") {
+        return fieldValue !== "true";
+      }
+      
+      // Validación para otros campos: no pueden estar vacíos o null
+      return !fieldValue || String(fieldValue).trim() === "";
+    });
 
     // Resaltar campos faltantes y mostrar alerta
     if (missingFields.length > 0) {
       const missingFieldNames = missingFields
         .map((field) => field.label)
         .join(", ");
-      setFieldErrors(
-        missingFields.reduce((acc, field) => {
-          acc[field.fieldName] = true;
-          return acc;
-        }, {})
-      );
+      
+      // Actualizar estado de errores
+      const errorMap = missingFields.reduce((acc, field) => {
+        acc[field.fieldName] = true;
+        return acc;
+      }, {} as { [key: string]: boolean });
+      
+      setFieldErrors(errorMap);
+      
       Alert.alert(
-        "Error",
-        `Los siguientes campos son obligatorios: ${missingFieldNames}`
+        "Error de Validación",
+        `Los siguientes campos son obligatorios:\n\n${missingFieldNames}`
       );
       return;
     }
+    
+    // Limpiar errores si la validación pasó
+    setFieldErrors({});
 
     setIsRegistering(true);
 
     try {
       const setDataTreatmentConsent = {...formData, dataTreatmentConsent: formData["dataTreatmentConsent"] == "true"}
+      
+      // Obtener email del formulario
+      const email = formData["email"];
+      
+      // Si existe el campo idNumber, usarlo como contraseña, si no usar el campo password
+      const idNumberField = propertiesDefinition?.find((field) => field.fieldName === "idNumber");
+      const password = idNumberField ? formData["idNumber"] : formData["password"];
+      
+      // Validar que email y password existan
+      if (!email || email.trim() === "") {
+        Alert.alert("Error", "El email es requerido para registrarse");
+        setIsRegistering(false);
+        return;
+      }
+      
+      if (!password || password.trim() === "") {
+        const fieldLabel = idNumberField ? idNumberField.label : "contraseña";
+        Alert.alert("Error", `${fieldLabel} es requerido para registrarse`);
+        setIsRegistering(false);
+        return;
+      }
+
+      console.log("Intentando registrar con:", { email, organizationId: organization._id });
+      
       const success = await signUp(email, password, organization._id, setDataTreatmentConsent);
 
       if (success) {
         Alert.alert("Registro Exitoso", "Usuario registrado correctamente.", [
-          { text: "OK", onPress: () => router.push("/(app)") },
+          { text: "OK", onPress: () => router.push("/(app)/(tabs)/home") },
         ]);
       }
     } catch (error) {
+      console.error("Error en registro:", error);
       Alert.alert("Error", authError || "Error al registrar el usuario.");
     } finally {
       setIsRegistering(false);
@@ -141,7 +181,16 @@ export default function RegisterScreen() {
                 return (
                   <View
                     key={field.fieldName}
-                    style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}
+                    style={[
+                      { flexDirection: "row", alignItems: "center", marginBottom: 15 },
+                      fieldError && { 
+                        borderWidth: 2, 
+                        borderColor: "#ff3333", 
+                        padding: 10,
+                        borderRadius: 8,
+                        backgroundColor: "#ffe6e6"
+                      }
+                    ]}
                   >
                     <Checkbox
                       status={formData[field.fieldName] ? "checked" : "unchecked"}
@@ -156,6 +205,11 @@ export default function RegisterScreen() {
                       {field.label}
                       {isFieldRequired && <Text style={styles.asterisk}>*</Text>}
                     </Text>
+                    {fieldError && (
+                      <Text style={{ color: "#ff3333", fontSize: 12, marginLeft: "auto" }}>
+                        Requerido
+                      </Text>
+                    )}
                   </View>
                 );
               }
@@ -165,7 +219,14 @@ export default function RegisterScreen() {
                   <View key={field.fieldName}>
                     <TouchableOpacity
                       onPress={() => setShowPicker(true)}
-                      style={styles.pickerButton}
+                      style={[
+                        styles.pickerButton,
+                        fieldError && { 
+                          borderColor: "#ff3333", 
+                          borderWidth: 2,
+                          backgroundColor: "#ffe6e6"
+                        }
+                      ]}
                     >
                       <Text>
                         {formData[field.fieldName] ||
@@ -175,6 +236,11 @@ export default function RegisterScreen() {
                         )}
                       </Text>
                     </TouchableOpacity>
+                    {fieldError && (
+                      <Text style={{ color: "#ff3333", fontSize: 12, marginBottom: 10 }}>
+                        Este campo es obligatorio
+                      </Text>
+                    )}
 
                     <Modal
                       visible={showPicker}
@@ -212,22 +278,46 @@ export default function RegisterScreen() {
                     </Modal>
                   </View>
                 ) : (
-                  <RNPickerSelect
-                    key={field.fieldName}
-                    onValueChange={(value) =>
-                      handleInputChange(field.fieldName, value)
-                    }
-                    items={field.options.map((option: string) => ({
-                      label: option,
-                      value: option,
-                    }))}
-                    placeholder={{
-                      label: "Seleccione una especialidad",
-                      value: "",
-                    }}
-                    value={formData[field.fieldName]}
-                    style={pickerSelectStyles}
-                  />
+                  <View key={field.fieldName}>
+                    <RNPickerSelect
+                      onValueChange={(value) =>
+                        handleInputChange(field.fieldName, value)
+                      }
+                      items={field.options.map((option: string) => ({
+                        label: option,
+                        value: option,
+                      }))}
+                      placeholder={{
+                        label: "Seleccione una especialidad",
+                        value: "",
+                      }}
+                      value={formData[field.fieldName]}
+                      style={{
+                        ...pickerSelectStyles,
+                        inputAndroid: [
+                          pickerSelectStyles.inputAndroid,
+                          fieldError && {
+                            borderColor: "#ff3333",
+                            borderWidth: 2,
+                            backgroundColor: "#ffe6e6"
+                          }
+                        ],
+                        inputIOS: [
+                          pickerSelectStyles.inputIOS,
+                          fieldError && {
+                            borderColor: "#ff3333",
+                            borderWidth: 2,
+                            backgroundColor: "#ffe6e6"
+                          }
+                        ]
+                      }}
+                    />
+                    {fieldError && (
+                      <Text style={{ color: "#ff3333", fontSize: 12, marginBottom: 10 }}>
+                        Este campo es obligatorio
+                      </Text>
+                    )}
+                  </View>
                 );
               }
 
@@ -244,6 +334,7 @@ export default function RegisterScreen() {
                       handleInputChange(field.fieldName, value)
                     }
                     style={styles.input}
+                    error={fieldError}
                     right={
                       <TextInput.Icon
                         icon={() => (
@@ -264,21 +355,28 @@ export default function RegisterScreen() {
               }
 
               return (
-                <TextInput
-                  key={field.fieldName}
-                  label={field.label}
-                  mode="outlined"
-                  secureTextEntry={field.type === "password"}
-                  keyboardType={
-                    field.type === "email" ? "email-address" : "default"
-                  }
-                  value={formData[field.fieldName] || ""}
-                  onChangeText={(value) =>
-                    handleInputChange(field.fieldName, value)
-                  }
-                  style={styles.input}
-                  autoCapitalize={field.type === "email" ? "none" : "sentences"}
-                />
+                <View key={field.fieldName}>
+                  <TextInput
+                    label={field.label}
+                    mode="outlined"
+                    secureTextEntry={field.type === "password"}
+                    keyboardType={
+                      field.type === "email" ? "email-address" : "default"
+                    }
+                    value={formData[field.fieldName] || ""}
+                    onChangeText={(value) =>
+                      handleInputChange(field.fieldName, value)
+                    }
+                    style={styles.input}
+                    autoCapitalize={field.type === "email" ? "none" : "sentences"}
+                    error={fieldError}
+                  />
+                  {fieldError && (
+                    <Text style={{ color: "#ff3333", fontSize: 12, marginBottom: 10 }}>
+                      Este campo es obligatorio{isFieldRequired && "*"}
+                    </Text>
+                  )}
+                </View>
               );
             })}
 

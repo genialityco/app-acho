@@ -123,12 +123,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     memberData: object
   ) => {
     try {
+      console.log("SignUp iniciado con:", { email, organizationId: organizationId?.substring(0, 10) + "..." });
+
+      // Validación de parámetros
+      if (!email || email.trim() === "") {
+        throw new Error("El email no puede estar vacío");
+      }
+      if (!password || password.trim() === "") {
+        throw new Error("La contraseña no puede estar vacía");
+      }
+      if (!organizationId || organizationId.trim() === "") {
+        throw new Error("El ID de la organización no es válido");
+      }
+
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
       const user = userCredential.user;
+
+      console.log("Usuario creado en Firebase:", user.uid);
 
       // Guardar el UID en AsyncStorage
       await AsyncStorage.multiSet([["userUid", user.uid]]);
@@ -142,6 +157,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       const userCreated = response.data;
 
+      console.log("Usuario creado en DB:", userCreated._id);
+
       const responseCreateMember = await createMember({
         userId: userCreated._id,
         organizationId: organizationId,
@@ -151,6 +168,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (!responseCreateMember.status) {
         throw new Error("Error al crear el miembro en la base de datos.");
       }
+
+      console.log("Miembro creado exitosamente");
 
       // Actualizar el estado de autenticación
       setAuthState((prevState) => ({
@@ -163,8 +182,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }));
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al registrar el usuario:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
 
       // Manejar el error de autenticación y mostrar alerta directamente
       handleAuthError(error);
@@ -257,8 +278,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Función para manejar errores de autenticación
   const handleAuthError = (error: any, customMessage?: string) => {
+    console.error("Error detallado:", error);
+    
     const errorCode = error.code as keyof typeof errorMessages;
-    const errorMessages = {
+    const errorMessages: { [key: string]: string } = {
       "auth/wrong-password": "La contraseña es incorrecta.",
       "auth/user-not-found": "No se encontró una cuenta con este correo.",
       "auth/email-already-in-use": "Este correo ya está registrado.",
@@ -267,13 +290,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         "Credenciales inválidas o el correo no esta registrado.",
       "auth/too-many-requests":
         "Demasiados intentos. Inténtalo de nuevo más tarde.",
+      "auth/invalid-email": "El correo electrónico no es válido.",
+      "auth/network-request-failed": "Error de conexión. Revisa tu internet.",
+      "auth/unknown": "Error desconocido de autenticación.",
     };
 
     // Obtener el mensaje de error
-    const errorMessage =
-      errorMessages[errorCode] ||
-      customMessage ||
-      "Ha ocurrido un error. Inténtalo de nuevo.";
+    let errorMessage = errorMessages[errorCode] || customMessage || error.message || "Ha ocurrido un error. Inténtalo de nuevo.";
+    
+    // Si aún no hay mensaje, usar el mensaje del error completo
+    if (!errorMessage) {
+      errorMessage = `Error: ${error.toString()}`;
+    }
+
+    console.error("Mensaje de error final:", errorMessage);
 
     // Mostrar la alerta de error inmediatamente
     Alert.alert("Error", errorMessage);
