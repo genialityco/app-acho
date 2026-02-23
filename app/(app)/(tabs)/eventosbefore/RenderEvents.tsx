@@ -101,8 +101,7 @@ export default function RenderEvents({
               `/eventosbefore/components/eventdetailb?eventId=${item._id}`
             )
           }
-        >
-          Detalles
+        >Ver detalles
         </Button>
       </View>
     </Card>

@@ -297,7 +297,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                       style={styles.fab}
                       onPress={() => {
                         router.push(
-                          `/${tab}/components/program?eventId=${event._id}&tab=${tab}`
+                          `/${tab}/components/program?eventId=${event._id}&tab=${tab}` as any
                         );
                       }}
                     />
@@ -312,7 +312,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                       style={styles.fab}
                       onPress={() => {
                         router.push(
-                          `/${tab}/components/speakers?eventId=${event._id}&tab=${tab}`
+                          `/${tab}/components/speakers?eventId=${event._id}&tab=${tab}` as any
                         );
                       }}
                     />
@@ -327,7 +327,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                       style={styles.fab}
                       onPress={() => {
                         router.push(
-                          `/${tab}/components/documents?eventId=${event._id}&tab=${tab}`
+                          `/${tab}/components/documents?eventId=${event._id}&tab=${tab}` as any
                         );
                       }}
                     />
@@ -338,7 +338,7 @@ export default function EventDetail({ tab }: { tab: string }) {
 
               <View style={styles.buttonRow}>
                 {event?.eventSections.ubication && (
-                  <Link href={`/${tab}/components/venue?eventId=${event._id}`}>
+                  <Link href={`/${tab}/components/venue?eventId=${event._id}` as any}>
                     <View style={styles.buttonWrapper}>
                       <FAB icon="map-marker" color="white" style={styles.fab} />
                       <Text style={styles.label}>Ubicación</Text>
@@ -347,7 +347,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                 )}
                 {event?.eventSections.certificate && (
                   <Link
-                    href={`/${tab}/components/certificates?eventId=${event._id}&userId=${userId}&tab=${tab}`}
+                    href={`/${tab}/components/certificates?eventId=${event._id}&userId=${userId}&tab=${tab}` as any}
                   >
                     <View style={styles.buttonWrapper}>
                       <FAB
@@ -361,7 +361,7 @@ export default function EventDetail({ tab }: { tab: string }) {
                 )}
                 {event?.eventSections.posters && (
                   <Link
-                    href={`/${tab}/components/posterslist?eventId=${event._id}&tab=${tab}&isMemberActive=${isMemberActive}`}
+                    href={`/${tab}/components/posterslist?eventId=${event._id}&tab=${tab}&isMemberActive=${isMemberActive}` as any}
                   >
                     <View style={styles.buttonWrapper}>
                       <FAB icon="image" color="white" style={styles.fab} />
@@ -374,9 +374,9 @@ export default function EventDetail({ tab }: { tab: string }) {
 
             {/* <Text style={styles.date}>{event?.description}</Text> */}
             <LinkifyText description={event?.description} styles={styles.date} />
-            <Text style={styles.date}>
+            {/* <Text style={styles.date}>
               {formatDate(event?.startDate, event?.endDate)}
-            </Text>
+            </Text> */}
           </View>
         </ScrollView>
 

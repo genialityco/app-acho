@@ -32,6 +32,15 @@ interface Event {
   price?: number;
 }
 
+// Función para limpiar URLs directas y links en markdown de la descripción
+const cleanDescriptionUrls = (description: string): string => {
+  // Remueve links en formato markdown [texto](url)
+  let cleaned = description.replace(/\[([^\]]+)\]\(https?:\/\/[^\)]+\)/g, "");
+  // Remueve URLs directas que NO estén en formato markdown
+  cleaned = cleaned.replace(/(?<!\]\()https?:\/\/[^\s\)]+/g, "");
+  return cleaned.trim();
+};
+
 export default function EventosScreen() {
   const [events, setEvents] = useState<Event[]>([]);
   const [registeredEvents, setRegisteredEvents] = useState<string[]>([]);
@@ -65,19 +74,20 @@ export default function EventosScreen() {
       };
 
       const eventResponse = await searchEvents(payload);
-      if (eventResponse.message === "No se encontraron eventos") {
+      const items = eventResponse.data?.items ?? [];
+      if (items.length === 0) {
         setEvents([]);
         setTotalPages(1);
         return;
       }
 
-      const items = eventResponse.data.items ?? [];
       setEvents((prev) => (page === 1 ? items : [...prev, ...items]));
       setTotalPages(eventResponse.data.totalPages ?? 1);
 
       // asistentes / membresía (igual que antes)
       const attendeeResponse = await searchAttendees({ userId });
-      if (attendeeResponse.message === "No se encontraron asistentes") {
+      const attendeeItems = attendeeResponse.data?.items ?? [];
+      if (attendeeItems.length === 0) {
         const memberData = await searchMembers({
           userId,
           organizationId: organization._id,
@@ -195,7 +205,7 @@ export default function EventosScreen() {
     //   setShowModal(true);
     // }
     router.push(
-      `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+      `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}` as any
     );
   };
 
@@ -271,7 +281,7 @@ export default function EventosScreen() {
                 </View>
 
                 <Text style={styles.eventTitle}>{event.name}</Text>
-                <Text style={styles.eventDescription}>{event.description}</Text>
+                <Text style={styles.eventDescription}>{cleanDescriptionUrls(event.description)}</Text>
               </View>
             </View>
 
@@ -289,7 +299,7 @@ export default function EventosScreen() {
                 mode="outlined"
                 onPress={() =>
                   router.push(
-                    `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`
+                    `/(index)/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}` as any
                   )
                 }
               >
