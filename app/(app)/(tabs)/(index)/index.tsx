@@ -303,7 +303,7 @@ export default function EventosScreen() {
                   )
                 }
               >
-                Detalles
+                Detalles y Agenda
               </Button>
             </View>
           </Card>

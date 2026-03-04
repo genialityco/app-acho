@@ -13,10 +13,10 @@ import WebView from "react-native-webview";
 
 type CertificatesParams = {
   params: {
-  eventId: string;
-  userId: string;
-  }
-}
+    eventId: string;
+    userId: string;
+  };
+};
 
 export default function Certificates() {
   // URL dinámica del certificado
