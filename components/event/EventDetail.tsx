@@ -126,13 +126,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 28,
+    fontWeight: "900",
+    textTransform: "uppercase",
     marginBottom: 10,
   },
   date: {
     color: "#ffffff",
-    fontWeight: "bold",
+    fontWeight: "normal",
     fontSize: 18,
     marginBottom: 20,
   },
