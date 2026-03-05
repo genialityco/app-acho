@@ -8,7 +8,7 @@ type Props = {
 
 const linkStyles = StyleSheet.create({
   link: {
-    color: "#1e90ff",
+    color: "#3F5216",
     textDecorationLine: "underline",
   },
 });
