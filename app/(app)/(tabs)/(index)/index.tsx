@@ -18,6 +18,7 @@ import { searchAttendees } from "@/services/api/attendeeService";
 import dayjs from "dayjs";
 import { useFocusEffect } from "@react-navigation/native";
 import { searchMembers } from "@/services/api/memberService";
+import Analytics from "@/services/analytics";
 
 interface Event {
   _id: string;
@@ -182,6 +183,9 @@ export default function EventosScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchEventsAndAttendees(currentPage); // y pásalo al payload como arriba
+      
+      // Trackear visualización de pantalla de Eventos Próximos
+      Analytics.logScreenView('eventos_proximos', 'EventosScreen');
     }, [organization, userId, currentPage])
   );
 
@@ -196,6 +200,9 @@ export default function EventosScreen() {
   };
 
   const handleClicCard = (event: Event) => {
+    // Trackear visualización de evento
+    Analytics.logViewEvent(event._id, event.name, 'proximo');
+    
     // if (isMemberActive) {
     //   router.push(
     //     `/components/eventdetail?eventId=${event._id}&isMemberActive=${isMemberActive}&memberId=${memberId}`

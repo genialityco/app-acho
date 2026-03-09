@@ -11,6 +11,8 @@ import { WebView } from "react-native-webview";
 import { useAuth } from "@/context/AuthContext"; 
 import { searchAttendees } from "@/services/api/attendeeService";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { useFocusEffect } from "@react-navigation/native";
+import  Analytics  from "@/services/analytics";
 
 interface Certificate {
   id: number;
@@ -25,6 +27,13 @@ export default function MyCertificatesScreen() {
   const [selectedCertificate, setSelectedCertificate] =
     useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Trackear visualización de Mis Certificados
+  useFocusEffect(
+    React.useCallback(() => {
+      Analytics.logViewMyCertificates();
+    }, [])
+  );
 
   useEffect(() => {
     if (userId) {
@@ -60,6 +69,10 @@ export default function MyCertificatesScreen() {
   const handleViewOrDownload = (certificate: Certificate) => {
     const eventId = typeof certificate.eventId === "object" ? certificate.eventId._id : certificate.eventId;
     const certificateUrl = `https://gen-certificados.netlify.app/certificate/${eventId}/${userId}`;
+    
+    // Trackear descarga de certificado
+    Analytics.logDownloadCertificate(eventId, certificate.title);
+    
     Linking.openURL(certificateUrl);
   };
   
