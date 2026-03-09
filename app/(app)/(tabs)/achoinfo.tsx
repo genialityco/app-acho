@@ -126,7 +126,7 @@ function ACHOInfoScreen() {
         <Card style={styles.card}>
           <Card.Content>
             <Text variant="titleLarge" style={styles.subtitle}>
-              Junta Directiva (2022 - 2026)
+              Junta Directiva (2025 - 2026)
             </Text>
             <ThemedView style={styles.divider} />
             <View style={styles.presidentContainer}>

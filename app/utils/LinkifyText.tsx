@@ -8,20 +8,18 @@ type Props = {
 
 const linkStyles = StyleSheet.create({
   link: {
-    color: "#3F5216",
+    color: "#0e9fe2",
     textDecorationLine: "underline",
   },
   bold: {
-    fontWeight: "900",
-    fontSize: 20,
+    fontWeight: "700",
   },
   italic: {
     fontStyle: "italic",
   },
   boldItalic: {
-    fontWeight: "900",
+    fontWeight: "700",
     fontStyle: "italic",
-    fontSize: 20,
   },
 });
 
@@ -33,6 +31,20 @@ type Part = {
 };
 
 const LinkifyText: React.FC<Props> = ({ description, styles }) => {
+  // Extraer fontSize del estilo base
+  const baseFontSize = typeof styles?.fontSize === "number" ? styles.fontSize : 14;
+  const boldFontSize = baseFontSize + 2;
+
+  const dynamicBoldStyle = {
+    fontWeight: "700" as const,
+    fontSize: boldFontSize,
+  };
+
+  const dynamicBoldItalicStyle = {
+    fontWeight: "700" as const,
+    fontStyle: "italic" as const,
+    fontSize: boldFontSize,
+  };
   // Regex para captar: negrita+cursiva (***), negrita (**), cursiva (*),
   // links markdown [texto](url) y URLs directas
   const combinedRegex =
@@ -107,7 +119,7 @@ const LinkifyText: React.FC<Props> = ({ description, styles }) => {
         }
         if (part.type === "bold") {
           return (
-            <Text key={index} style={linkStyles.bold}>
+            <Text key={index} style={dynamicBoldStyle}>
               {part.content}
             </Text>
           );
@@ -121,7 +133,7 @@ const LinkifyText: React.FC<Props> = ({ description, styles }) => {
         }
         if (part.type === "boldItalic") {
           return (
-            <Text key={index} style={linkStyles.boldItalic}>
+            <Text key={index} style={dynamicBoldItalicStyle}>
               {part.content}
             </Text>
           );
