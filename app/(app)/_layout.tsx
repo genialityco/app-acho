@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import CustomDrawer from "@/components/CustomDrawer";
+import LinkifyText from "@/app/utils/LinkifyText";
 import { db, ref, onValue } from "@/services/firebaseConfig";
 import { useOrganization } from "@/context/OrganizationContext";
 import { Survey, searchSurveys } from "@/services/api/surveyService";
@@ -309,9 +310,10 @@ export default function ProtectedLayout() {
             <Text style={styles.modalTitle}>
               {currentNotification?.title || "Nueva notificación"}
             </Text>
-            <Text style={styles.modalBody}>
-              {currentNotification?.body || "Sin contenido"}
-            </Text>
+            <LinkifyText
+              description={currentNotification?.body || "Sin contenido"}
+              styles={styles.modalBody}
+            />
             <Pressable
               style={styles.closeButton}
               onPress={handleCloseNotification}
@@ -352,13 +354,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 10,
+    marginBottom: 15,
   },
   modalBody: {
     fontSize: 16,
     marginBottom: 20,
+    color: "#333",
+    lineHeight: 22,
   },
   closeButton: {
     padding: 10,

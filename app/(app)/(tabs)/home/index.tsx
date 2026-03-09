@@ -15,6 +15,7 @@ import { useOrganization } from "@/context/OrganizationContext";
 import { useAuth } from "@/context/AuthContext";
 import { News, searchNews } from "@/services/api/newsService";
 import { useNotifications } from "@/context/NotificationsContext";
+import LinkifyText from "@/app/utils/LinkifyText";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useRouter } from "expo-router";
@@ -250,9 +251,10 @@ function HomeScreen() {
                       ]}
                     >
                       <Avatar.Icon size={36} icon="bell" style={styles.notificationIcon} />
-                      <Text style={styles.notificationText}>
-                        {notification.title} {notification.body} - ver
-                      </Text>
+                      <LinkifyText
+                        description={`**${notification.title}** ${notification.body}`}
+                        styles={styles.notificationText}
+                      />
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -294,9 +296,10 @@ function HomeScreen() {
             <Text style={styles.modalTitle}>
               {selectedNotification?.title || "Notificación"}
             </Text>
-            <Text style={styles.modalBody}>
-              {selectedNotification?.body || "Sin contenido"}
-            </Text>
+            <LinkifyText
+              description={selectedNotification?.body || "Sin contenido"}
+              styles={styles.modalBody}
+            />
 
             <View style={styles.modalButtonsRow}>
               {selectedNotification?.data?.route && (
@@ -353,7 +356,7 @@ const styles = StyleSheet.create({
   },
   notificationRead: { opacity: 0.5 },
   notificationIcon: { marginRight: 10, backgroundColor: "#00796b" },
-  notificationText: { fontSize: 14, color: "#333", flexShrink: 1 },
+  notificationText: { fontSize: 14, color: "#333", flexShrink: 1, lineHeight: 18 },
 
   metaText: { marginBottom: 10, color: "#555" },
 
@@ -370,8 +373,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  modalTitle: { fontSize: 18, fontWeight: "bold", marginBottom: 10 },
-  modalBody: { fontSize: 16, marginBottom: 20 },
+  modalTitle: { fontSize: 24, fontWeight: "bold", marginBottom: 15 },
+  modalBody: { fontSize: 16, marginBottom: 20, color: "#333", lineHeight: 22 },
   modalButtonsRow: {
     display: "flex",
     flexDirection: "row",
