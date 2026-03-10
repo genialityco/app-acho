@@ -1,4 +1,4 @@
-import analytics from '@react-native-firebase/analytics';
+import { getAnalytics } from '@react-native-firebase/analytics';
 import { Platform } from 'react-native';
 
 /**
@@ -18,7 +18,8 @@ const Analytics = {
         console.log('[Analytics Web] User ID:', userId);
         return;
       }
-      await analytics().setUserId(userId);
+      const analytics = getAnalytics();
+      await analytics.setUserId(userId);
       console.log('[Analytics] User ID establecido:', userId);
     } catch (error) {
       console.error('[Analytics] Error setUserId:', error);
@@ -34,7 +35,8 @@ const Analytics = {
         console.log('[Analytics Web] User properties:', properties);
         return;
       }
-      await analytics().setUserProperties(properties);
+      const analytics = getAnalytics();
+      await analytics.setUserProperties(properties);
       console.log('[Analytics] User properties establecidas:', properties);
     } catch (error) {
       console.error('[Analytics] Error setUserProperties:', error);
@@ -71,7 +73,8 @@ const Analytics = {
         return;
       }
 
-      await analytics().logScreenView({
+      const analytics = getAnalytics();
+      await analytics.logScreenView({
         screen_name: screenName,
         screen_class: screenClass || screenName,
       });
@@ -172,7 +175,8 @@ const Analytics = {
         return;
       }
 
-      await analytics().logEvent(eventName, params);
+      const analytics = getAnalytics();
+      await analytics.logEvent(eventName, params);
       if (__DEV__) {
         console.log(`[Analytics] ${eventName}`, params || {});
       }
@@ -186,7 +190,8 @@ const Analytics = {
   setAnalyticsEnabled: async (enabled: boolean) => {
     try {
       if (Platform.OS !== 'web') {
-        await analytics().setAnalyticsCollectionEnabled(enabled);
+        const analytics = getAnalytics();
+        await analytics.setAnalyticsCollectionEnabled(enabled);
       }
       console.log('[Analytics] Colección habilitada:', enabled);
     } catch (error) {
