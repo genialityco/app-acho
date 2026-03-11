@@ -1,4 +1,10 @@
-import { getAnalytics } from '@react-native-firebase/analytics';
+import {
+  getAnalytics,
+  setUserId,
+  setUserProperties,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+} from '@react-native-firebase/analytics';
 import { Platform } from 'react-native';
 
 /**
@@ -18,8 +24,7 @@ const Analytics = {
         console.log('[Analytics Web] User ID:', userId);
         return;
       }
-      const analytics = getAnalytics();
-      await analytics.setUserId(userId);
+      await setUserId(getAnalytics(), userId);
       console.log('[Analytics] User ID establecido:', userId);
     } catch (error) {
       console.error('[Analytics] Error setUserId:', error);
@@ -35,8 +40,7 @@ const Analytics = {
         console.log('[Analytics Web] User properties:', properties);
         return;
       }
-      const analytics = getAnalytics();
-      await analytics.setUserProperties(properties);
+      await setUserProperties(getAnalytics(), properties);
       console.log('[Analytics] User properties establecidas:', properties);
     } catch (error) {
       console.error('[Analytics] Error setUserProperties:', error);
@@ -73,12 +77,11 @@ const Analytics = {
         return;
       }
 
-      const analytics = getAnalytics();
-      await analytics.logScreenView({
+      await logEvent(getAnalytics(), 'screen_view', {
         screen_name: screenName,
         screen_class: screenClass || screenName,
       });
-      
+
       console.log(`[Analytics] Screen view: ${screenName}`);
     } catch (error) {
       console.error('[Analytics] Error logScreenView:', error);
@@ -175,8 +178,7 @@ const Analytics = {
         return;
       }
 
-      const analytics = getAnalytics();
-      await analytics.logEvent(eventName, params);
+      await logEvent(getAnalytics(), eventName, params);
       if (__DEV__) {
         console.log(`[Analytics] ${eventName}`, params || {});
       }
@@ -190,8 +192,7 @@ const Analytics = {
   setAnalyticsEnabled: async (enabled: boolean) => {
     try {
       if (Platform.OS !== 'web') {
-        const analytics = getAnalytics();
-        await analytics.setAnalyticsCollectionEnabled(enabled);
+        await setAnalyticsCollectionEnabled(getAnalytics(), enabled);
       }
       console.log('[Analytics] Colección habilitada:', enabled);
     } catch (error) {
