@@ -26,6 +26,14 @@ GoogleServices-info.plist
 achoapp-438923-7f30f65dff1b.json
 google-services.json
 global-auth-49737-firebase-adminsdk-rfkvi-3bbc424068.json
+
+# Environment variables (no subir a git por seguridad)
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.preview.local
+
 .env
 android/
 .qodo

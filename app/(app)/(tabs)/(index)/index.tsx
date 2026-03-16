@@ -10,6 +10,7 @@ import { searchMembers } from "@/services/api/memberService";
 import LinkifyText from "@/app/utils/LinkifyText";
 import dayjs from "dayjs";
 import { useFocusEffect } from "@react-navigation/native";
+import Analytics from "@/services/analytics";
 
 // --- Tipos ---
 
@@ -110,10 +111,12 @@ export default function EventosScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchEventsAndAttendees(currentPage);
+      Analytics.logScreenView('eventos_proximos', 'EventosScreen');
     }, [organization, userId, currentPage]),
   );
 
   const navigateToEvent = (eventId: string) => {
+    
     router.push(
       `/(index)/components/eventdetail?eventId=${eventId}&isMemberActive=${isMemberActive}&memberId=${memberId}` as any,
     );

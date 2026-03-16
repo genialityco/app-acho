@@ -6,6 +6,7 @@ import { useFocusEffect, router } from "expo-router";
 import { useAuth } from "@/context/AuthContext";
 import { searchAttendees } from "@/services/api/attendeeService";
 import dayjs from "dayjs";
+import Analytics from "@/services/analytics";
 
 interface Event {
   _id: string;
@@ -25,6 +26,9 @@ export default function MyEventsScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
+      // Trackear visualización de Mis Eventos
+      Analytics.logViewMyEvents();
+      
       const fetchRegisteredEvents = async () => {
         try {
           const filters = { userId };

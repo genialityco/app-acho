@@ -25,6 +25,8 @@ import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import Constants from "expo-constants";
 import { Button } from "react-native-paper";
+import { useFocusEffect } from "@react-navigation/native";
+import  Analytics  from "@/services/analytics";
 
 export default function MenuScreen() {
   const [user, setUser] = useState<Attendee>({} as Attendee);
@@ -32,6 +34,13 @@ export default function MenuScreen() {
   const [isQrModalVisible, setIsQrModalVisible] = useState(false);
   const { signOut, uid, deleteAccount } = useAuth();
   const router = useRouter();
+
+  // Trackear visualización de pantalla Mi Perfil
+  useFocusEffect(
+    React.useCallback(() => {
+      Analytics.logScreenView('mi_perfil', 'MenuScreen');
+    }, [])
+  );
 
   const fetchUserProfile = async () => {
     try {
