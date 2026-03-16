@@ -34,6 +34,6 @@ global-auth-49737-firebase-adminsdk-rfkvi-3bbc424068.json
 .env.production.local
 .env.preview.local
 
+.env
 android/
-
 .qodo
