@@ -327,9 +327,13 @@ export default function ProtectedLayout() {
         visible={showPromo}
         onClose={() => setShowPromo(false)}
         imageUri={
-          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/imagenACHO.jpeg?alt=media&token=a33b3f58-8a98-41e3-9e0b-dcb079ad99d8"
+          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/page-1.png?alt=media&token=c58a24f2-b5a4-45b4-aef5-49f1ab137ff4"
         } // <-- tu imagen
         ctaUrl={"https://esmosummit2026.acho.com.co/registro/"}
+        showButton={false}
+        imageOnPressUrl={
+          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Y1774039328985-Security_and_transportation_guide_-_ESMO_2026.pdf?alt=media&token=c982f10f-733a-4097-b099-ab9c9dc46d2f"
+        }
       />
       <Stack screenOptions={{ headerShown: false }} />
     </View>

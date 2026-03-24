@@ -238,12 +238,16 @@ export default function EventDetail({ tab }: { tab: string }) {
   const availableSections = SECTIONS_MAP.filter((s) =>
     Boolean((event.eventSections as any)?.[s.key]),
   );
+  
+  console.log("Available sections:", availableSections);
+  console.log("Event sections config:", event.eventSections);
+  
   const sectionCount = availableSections.length;
   const gutter = 3;
   const contentPadding = 32;
   const baseItemWidth = Math.floor((width - contentPadding - gutter * 2) / 3);
-  const iconSize = Math.max(18, Math.floor(baseItemWidth * 0.28));
-  const iconBubbleSize = Math.max(30, Math.floor(baseItemWidth * 0.45));
+  const iconSize = Math.max(20, Math.floor(baseItemWidth * 0.35)); // Aumentar tamaño mínimo
+  const iconBubbleSize = Math.max(50, Math.floor(baseItemWidth * 0.6)); // Aumentar tamaño de burbuja
   const titleFontSize = width < 360 ? 18 : width < 420 ? 22 : 26;
   const sectionTitleFontSize = width < 360 ? 14 : 15;
 
@@ -610,7 +614,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   sectionIcon: {
-    backgroundColor: "rgba(60, 255, 0, 0.1)",
+    backgroundColor: "rgba(0, 180, 100, 0.3)", // Color más visible
+    borderWidth: 2,
+    borderColor: "rgba(0, 255, 136, 0.6)",
     borderRadius: 40,
     width: 64,
     height: 64,

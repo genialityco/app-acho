@@ -14,10 +14,12 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   imageUri: string; // URL pública de la imagen
-  ctaUrl: string;
+  imageOnPressUrl: string; // URL que se abre al presionar la imagen
+  ctaUrl?: string; // URL que se abre al presionar el botón
+  showButton?: boolean; // Mostrar botón CTA (default: false)
 };
 
-export function ImagePromoModal({ visible, onClose, imageUri, ctaUrl }: Props) {
+export function ImagePromoModal({ visible, onClose, imageUri, imageOnPressUrl, ctaUrl, showButton = false }: Props) {
   const { width, height } = useWindowDimensions();
 
   // Tamaños responsivos
@@ -25,7 +27,14 @@ export function ImagePromoModal({ visible, onClose, imageUri, ctaUrl }: Props) {
   const imageHeight = Math.min(height * 0.55, 420); // 55% alto pantalla, máx 420
   const imageWidth = cardWidth - 24; // por padding interno del card
 
-  const goToPage = async () => {
+  const openImageUrl = async () => {
+    const can = await Linking.canOpenURL(imageOnPressUrl);
+    if (can) Linking.openURL(imageOnPressUrl);
+    else Linking.openURL(imageOnPressUrl);
+  };
+
+  const openCtaUrl = async () => {
+    if (!ctaUrl) return;
     const can = await Linking.canOpenURL(ctaUrl);
     if (can) Linking.openURL(ctaUrl);
     else Linking.openURL(ctaUrl);
@@ -45,26 +54,30 @@ export function ImagePromoModal({ visible, onClose, imageUri, ctaUrl }: Props) {
             <Text style={styles.closeText}>✕</Text>
           </Pressable>
 
-          {/* Imagen responsive */}
-          <Image
-            source={{ uri: imageUri }}
-            style={{
-              width: imageWidth,
-              height: imageHeight,
-              borderRadius: 10,
-              marginTop: 24,
-              marginBottom: 12,
-            }}
-            resizeMode="contain" // usa "cover" si prefieres que llene recortando
-          />
-
-          {/* CTA */}
-          <Pressable
-            style={[styles.ctaBtn, { width: imageWidth }]}
-            onPress={goToPage}
-          >
-            <Text style={styles.ctaText}>Ir a la página</Text>
+          {/* Imagen responsive - presionable */}
+          <Pressable onPress={openImageUrl}>
+            <Image
+              source={{ uri: imageUri }}
+              style={{
+                width: imageWidth,
+                height: imageHeight,
+                borderRadius: 10,
+                marginTop: 24,
+                marginBottom: 12,
+              }}
+              resizeMode="contain"
+            />
           </Pressable>
+
+          {/* CTA - opcional */}
+          {showButton && (
+            <Pressable
+              style={[styles.ctaBtn, { width: imageWidth }]}
+              onPress={openCtaUrl}
+            >
+              <Text style={styles.ctaText}>Ir a la página</Text>
+            </Pressable>
+          )}
         </View>
       </View>
     </Modal>

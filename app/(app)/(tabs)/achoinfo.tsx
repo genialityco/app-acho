@@ -143,7 +143,7 @@ function ACHOInfoScreen() {
                 VICEPRESIDENTE
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. Dr. William Armando Mantilla Durán
+                Dr. William Armando Mantilla Durán
               </ThemedText>
             </View>
             <View style={styles.presidentContainer}>
