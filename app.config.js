@@ -2,7 +2,7 @@ module.exports = {
   expo: {
     name: "AchoApp",
     slug: "gen-notifications",
-    version: "1.0.10",
+    version: "1.0.9",
     orientation: "portrait",
     icon: "./assets/icons/icon-android.png",
     scheme: "achoapp",
@@ -16,8 +16,8 @@ module.exports = {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.acho.eventosactualidad",
-      // googleServicesFile: "./GoogleService-Info.plist", // Comentado hasta tener el archivo
-      buildNumber: "1.0.10",
+      googleServicesFile: "./GoogleService-Info.plist",
+      buildNumber: "1.0.9",
       infoPlist: {
         NSLocationWhenInUseUsageDescription: "AchoApp requiere acceso a la ubicación mientras se utiliza para personalizar la experiencia.",
         UIBackgroundModes: [
@@ -33,7 +33,7 @@ module.exports = {
       }
     },
     android: {
-      // versionCode se maneja automáticamente por EAS (appVersionSource: remote)
+      versionCode: 37,
       package: "com.geniality.achoapp",
       googleServicesFile: "./google-services.json",
       adaptiveIcon: {
@@ -70,7 +70,6 @@ module.exports = {
           }
         }
       ],
-      "./plugins/withFirebase",
       "expo-router",
       "react-native-video",
       "expo-notifications"
@@ -84,7 +83,7 @@ module.exports = {
       }
     },
     owner: "geniality",
-    runtimeVersion: "1.0.10",
+    runtimeVersion: "1.0.9",
     updates: {
       url: "https://u.expo.dev/7b771362-c331-49ce-94fd-f43d171a309e"
     }

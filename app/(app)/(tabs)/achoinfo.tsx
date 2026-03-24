@@ -4,17 +4,8 @@ import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { Card, Text } from "react-native-paper";
-import { useFocusEffect } from "@react-navigation/native";
-import Analytics from "@/services/analytics";
 
 function ACHOInfoScreen() {
-  // Trackear visualización de pantalla ACHO
-  useFocusEffect(
-    React.useCallback(() => {
-      Analytics.logScreenView('acho_info', 'ACHOInfoScreen');
-    }, [])
-  );
-
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#A1CEDC" }}
@@ -152,7 +143,7 @@ function ACHOInfoScreen() {
                 VICEPRESIDENTE
               </ThemedText>
               <ThemedText style={styles.sectionText}>
-                Dr. William Armando Mantilla Durán
+                Dr. Dr. William Armando Mantilla Durán
               </ThemedText>
             </View>
             <View style={styles.presidentContainer}>

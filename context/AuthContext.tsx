@@ -12,7 +12,6 @@ import { ReactNode } from "react";
 import { createUser, searchUsers } from "@/services/api/userService";
 import { createMember } from "@/services/api/memberService";
 import { Alert } from "react-native";
-import Analytics from "@/services/analytics";
 
 // Definición del contexto de autenticación
 const AuthContext = createContext<{
@@ -92,15 +91,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await searchUsers({ firebaseUid: uid });
       if (response.data.items.length > 0) {
-        const userData = response.data.items[0];
         setAuthState((prevState) => ({
           ...prevState,
-          userId: userData._id,
+          userId: response.data.items[0]._id,
           isLoading: false,
         }));
-        
-        // Configurar Analytics con el ID del usuario
-        await Analytics.setUserId(userData._id);
       }
     } catch (error) {
       Alert.alert("Error", "No podemos ingresar, intente más tarde");
@@ -186,10 +181,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         authError: null,
       }));
 
-      // Trackear evento de registro en Analytics
-      await Analytics.logSignUp('email');
-      await Analytics.setUserId(userCreated._id);
-
       return true;
     } catch (error: any) {
       console.error("Error al registrar el usuario:", error);
@@ -223,10 +214,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }));
 
       await fetchUserByFirebaseUid(userCredential.user.uid);
-      
-      // Trackear evento de login en Analytics
-      await Analytics.logLogin('email');
-      
       return true;
     } catch (error) {
       handleAuthError(error);
@@ -237,9 +224,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Función de cierre de sesión
   const signOut = async () => {
     try {
-      // Trackear evento de logout en Analytics
-      await Analytics.logLogout();
-      
       await firebaseSignOut(auth);
       await handleSignOut();
     } catch (error) {
@@ -283,10 +267,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const resetPassword = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
-      
-      // Trackear evento de recuperación de contraseña
-      await Analytics.logPasswordReset();
-      
       Alert.alert(
         "Correo enviado",
         "Se ha enviado un correo electrónico para restablecer tu contraseña."

@@ -7,7 +7,6 @@ import { searchEvents, Event as ApiEvent } from "@/services/api/eventService";
 import { OrganizationContext } from "@/context/OrganizationContext";
 import { useFocusEffect } from "expo-router";
 import EventsHighlighs from "./EventsHighlighs";
-import Analytics from "@/services/analytics";
 
 export default function EventsBeforeScreen() {
   const [activeTab, setActiveTab] = useState("pastEvents");
@@ -74,15 +73,6 @@ export default function EventsBeforeScreen() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    
-    // Trackear cambio de tab
-    if (tab === "memorias") {
-      Analytics.logScreenView('eventos_anteriores_memorias', 'EventsBeforeScreen');
-      Analytics.logViewMemorias();
-    } else {
-      Analytics.logScreenView('eventos_anteriores', 'EventsBeforeScreen');
-    }
-    
     if (tab === "pastEvents") {
       // Reset events when switching back to pastEvents tab
       setCurrentPage(1);
@@ -95,7 +85,6 @@ export default function EventsBeforeScreen() {
     useCallback(() => {
       if (activeTab === "pastEvents") {
         fetchEvents(1, true);
-        Analytics.logScreenView('eventos_anteriores', 'EventsBeforeScreen');
       }
     }, [organization])
   );

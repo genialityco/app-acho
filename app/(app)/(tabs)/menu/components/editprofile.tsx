@@ -13,15 +13,14 @@ import {
 } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { searchMembers, updateMember } from "@/services/api/memberService";
-import { ActivityIndicator, Button, TextInput } from "react-native-paper";
+import { ActivityIndicator, Button, TextInput, Switch } from "react-native-paper";
 import { fetchOrganizationById } from "@/services/api/organizationService";
 import { useOrganization } from "@/context/OrganizationContext";
 import { Picker } from "@react-native-picker/picker";
 import RNPickerSelect from "react-native-picker-select";
+import { set } from "firebase/database";
 import { deleteUser } from "@/services/api/userService";
 import { router } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
-import Analytics from "@/services/analytics";
 
 export default function EditProfileScreen() {
   const { userId, deleteAccount } = useAuth();
@@ -37,13 +36,6 @@ export default function EditProfileScreen() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [specialties, setSpecialties] = useState<string[]>([]);
-
-  // Trackear visualización de pantalla Editar Perfil
-  useFocusEffect(
-    React.useCallback(() => {
-      Analytics.logScreenView('editar_perfil', 'EditProfileScreen');
-    }, [])
-  );
 
   useEffect(() => {
     fetchUserData();
@@ -108,9 +100,6 @@ export default function EditProfileScreen() {
           };
           const response = await updateMember(memberId, userData);
           if (response.status === "success") {
-            // Trackear edición de perfil
-            await Analytics.logEditProfile();
-            
             Alert.alert(
               "Perfil actualizado",
               "Los datos del perfil se han actualizado correctamente."

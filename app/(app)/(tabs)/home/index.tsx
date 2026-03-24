@@ -19,7 +19,6 @@ import LinkifyText from "@/app/utils/LinkifyText";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useRouter } from "expo-router";
-import Analytics from "@/services/analytics";
 
 dayjs.locale("es");
 
@@ -81,9 +80,6 @@ function HomeScreen() {
     if (userId && organization) {
       fetchNews(1, true);
       refreshNotifications();
-      
-      // Trackear visualización de pantalla de Novedades
-      Analytics.logScreenView('home_novedades', 'HomeScreen');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, organization?._id]);

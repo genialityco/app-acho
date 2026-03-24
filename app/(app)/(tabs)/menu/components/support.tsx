@@ -1,17 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
-import Analytics from '@/services/analytics';
 
 export default function ContactSupportScreen() {
-  // Trackear visualización de Soporte
-  useFocusEffect(
-    React.useCallback(() => {
-      Analytics.logViewSupport();
-    }, [])
-  );
-
   // Funciones para abrir los enlaces
   const openWhatsApp = () => {
     const phoneNumber = '573155026643'; // Reemplaza con tu número de WhatsApp (código de país + número)
