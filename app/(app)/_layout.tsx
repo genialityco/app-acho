@@ -25,12 +25,12 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
-import { ImagePromoModal } from "@/components/ImagePromoModal"; // si lo sacas a componente
+//import { ImagePromoModal } from "@/components/ImagePromoModal"; // si lo sacas a componente
 
 const { width } = Dimensions.get("window");
 
 export default function ProtectedLayout() {
-  const [showPromo, setShowPromo] = useState(true);
+  //const [showPromo, setShowPromo] = useState(true);
   const { isLoggedIn, isLoading, userId } = useAuth();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -323,7 +323,7 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-      <ImagePromoModal
+      {/* <ImagePromoModal
         visible={showPromo}
         onClose={() => setShowPromo(false)}
         imageUri={
@@ -334,7 +334,7 @@ export default function ProtectedLayout() {
         imageOnPressUrl={
           "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Y1774039328985-Security_and_transportation_guide_-_ESMO_2026.pdf?alt=media&token=c982f10f-733a-4097-b099-ab9c9dc46d2f"
         }
-      />
+      /> */}
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );

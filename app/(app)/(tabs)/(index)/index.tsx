@@ -67,17 +67,23 @@ export default function EventosScreen() {
     setLoading(true);
 
     try {
+      const todayStartIso = dayjs().startOf("day").toISOString();
+
       const eventResponse = await searchEvents({
         page,
         limit: 20,
         filters: [
           { field: "organizationId", operator: "eq", value: organization._id },
-          { field: "startDate", operator: "gte", value: new Date().toISOString() },
+          { field: "endDate", operator: "gte", value: todayStartIso },
         ],
         sorters: [{ field: "startDate", order: "asc" }],
       });
 
-      const items = eventResponse.data?.items ?? [];
+      const now = dayjs();
+      const items = (eventResponse.data?.items ?? []).filter((event) =>
+        dayjs(event.endDate).endOf("day").isSame(now) ||
+        dayjs(event.endDate).endOf("day").isAfter(now),
+      );
       if (items.length === 0) {
         setEvents([]);
         setTotalPages(1);
