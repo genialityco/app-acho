@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import CustomDrawer from "@/components/CustomDrawer";
 import LinkifyText from "@/app/utils/LinkifyText";
+import { ImagePromoModal } from "@/components/ImagePromoModal";
 import { db, ref, onValue } from "@/services/firebaseConfig";
 import { useOrganization } from "@/context/OrganizationContext";
 import { Survey, searchSurveys } from "@/services/api/surveyService";
@@ -25,12 +26,11 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Updates from "expo-updates";
 import * as Application from "expo-application";
 import { Linking } from "react-native";
-//import { ImagePromoModal } from "@/components/ImagePromoModal"; // si lo sacas a componente
 
 const { width } = Dimensions.get("window");
 
 export default function ProtectedLayout() {
-  //const [showPromo, setShowPromo] = useState(true);
+  const [showPromo, setShowPromo] = useState(true);
   const { isLoggedIn, isLoading, userId } = useAuth();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -228,8 +228,8 @@ export default function ProtectedLayout() {
       responseListener.current =
         Notifications.addNotificationResponseReceivedListener((response) => {
           const { data } = response.notification.request.content;
-          if (data?.route) {
-            router.push(data.route);
+          if ((data as Record<string, any>)?.route) {
+            router.push((data as Record<string, any>).route as any);
           }
         });
 
@@ -323,18 +323,18 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-      {/* <ImagePromoModal
+      <ImagePromoModal
         visible={showPromo}
         onClose={() => setShowPromo(false)}
-        imageUri={
-          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/page-1.png?alt=media&token=c58a24f2-b5a4-45b4-aef5-49f1ab137ff4"
-        } // <-- tu imagen
+        videoUri={
+          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Video%202026%20HOA%20LA.mp4?alt=media&token=d5085435-c728-4f7c-9ca3-99b527dafa37"
+        }
         ctaUrl={"https://esmosummit2026.acho.com.co/registro/"}
         showButton={false}
         imageOnPressUrl={
           "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Y1774039328985-Security_and_transportation_guide_-_ESMO_2026.pdf?alt=media&token=c982f10f-733a-4097-b099-ab9c9dc46d2f"
         }
-      /> */}
+      />
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );
