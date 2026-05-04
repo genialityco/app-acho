@@ -323,7 +323,7 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-      <ImagePromoModal
+      {/* <ImagePromoModal
         visible={showPromo}
         onClose={() => setShowPromo(false)}
         videoUri={
@@ -334,7 +334,7 @@ export default function ProtectedLayout() {
         imageOnPressUrl={
           "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Y1774039328985-Security_and_transportation_guide_-_ESMO_2026.pdf?alt=media&token=c982f10f-733a-4097-b099-ab9c9dc46d2f"
         }
-      />
+      /> */}
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );
