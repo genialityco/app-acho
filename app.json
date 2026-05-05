@@ -33,7 +33,7 @@
       }
     },
     "android": {
-      "versionCode": 37,
+      "versionCode": 38,
       "package": "com.geniality.achoapp",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
