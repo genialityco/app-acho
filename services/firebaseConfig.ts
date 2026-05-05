@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { initializeApp } from "firebase/app";
 import { getDatabase, ref, push, onValue, set, get } from "firebase/database";
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
+import { getAnalytics, isSupported } from "firebase/analytics";
 
 // Configuración de Firebase obtenida desde Firebase Console
 const firebaseConfig = {
@@ -19,9 +20,19 @@ const app = initializeApp(firebaseConfig);
 
 const db = getDatabase(app);
 
+// Inicializar Analytics (solo funciona en web, pero no causará errores en mobile)
+let analytics: any = null;
+if (typeof window !== 'undefined') {
+  isSupported().then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    }
+  });
+}
+
 // Exportar servicios de autenticación
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
 
-export { db, ref, push, onValue, set, get };
+export { db, ref, push, onValue, set, get, analytics };
