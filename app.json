@@ -67,6 +67,10 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0"
+          },
+           "ios": {
+            "useFrameworks": "static",
+            "useModularHeaders": true
           }
         }
       ],
@@ -74,6 +78,7 @@
       "expo-router",
       "react-native-video",
       "expo-notifications"
+     
     ],
     "experiments": {
       "typedRoutes": true
