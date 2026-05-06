@@ -71,7 +71,7 @@ export default function RenderEvents({
         {/* Columna para la imagen */}
         <View style={styles.contentColumnOne}>
           <Image
-            source={{ uri: item.styles.miniatureImage }}
+            source={item.styles.miniatureImage ? { uri: item.styles.miniatureImage } : undefined}
             style={styles.eventImage}
           />
         </View>

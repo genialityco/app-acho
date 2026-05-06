@@ -209,7 +209,7 @@ export default function Highlights() {
           activeOpacity={0.8}
         >
           <View style={styles.videoContainer}>
-            <Image source={{ uri: item.imageUrl }} style={styles.thumbnailImage} />
+            <Image source={item.imageUrl ? { uri: item.imageUrl } : undefined} style={styles.thumbnailImage} />
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.titleText} numberOfLines={2}>

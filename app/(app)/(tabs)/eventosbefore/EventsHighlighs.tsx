@@ -161,7 +161,7 @@ export default function EventsHighlighs() {
         {highlightsCount[item._id] || 0} Memorias
       </Text>
       <Image 
-        source={{ uri: item.styles.miniatureImage || item.styles.eventImage }} 
+        source={(item.styles.miniatureImage || item.styles.eventImage) ? { uri: item.styles.miniatureImage || item.styles.eventImage } : undefined} 
         style={styles.image} 
       />
       <View style={styles.textOverlay}>
