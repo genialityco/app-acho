@@ -21,6 +21,8 @@ import RNPickerSelect from "react-native-picker-select";
 import { set } from "firebase/database";
 import { deleteUser } from "@/services/api/userService";
 import { router } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import Analytics from "@/services/analytics";
 
 export default function EditProfileScreen() {
   const { userId, deleteAccount } = useAuth();
@@ -36,6 +38,13 @@ export default function EditProfileScreen() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [specialties, setSpecialties] = useState<string[]>([]);
+
+  // Trackear visualización de pantalla Editar Perfil
+  useFocusEffect(
+    React.useCallback(() => {
+      Analytics.logScreenView('editar_perfil', 'EditProfileScreen');
+    }, [])
+  );
 
   useEffect(() => {
     fetchUserData();
@@ -100,6 +109,9 @@ export default function EditProfileScreen() {
           };
           const response = await updateMember(memberId, userData);
           if (response.status === "success") {
+            // Trackear edición de perfil
+            await Analytics.logEditProfile();
+
             Alert.alert(
               "Perfil actualizado",
               "Los datos del perfil se han actualizado correctamente."

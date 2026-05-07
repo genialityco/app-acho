@@ -41,7 +41,7 @@ export default function RenderEvents({
     const now = dayjs();
     // Filtrar eventos pasados y ordenarlos de más recientes a más antiguos
     const filteredEvents = events
-      .filter((event) => dayjs(event.startDate).isBefore(now))
+      .filter((event) => dayjs(event.endDate).endOf("day").isBefore(now))
       .sort((a, b) => dayjs(b.startDate).valueOf() - dayjs(a.startDate).valueOf());
   
     setPastEvents(filteredEvents);
@@ -71,7 +71,7 @@ export default function RenderEvents({
         {/* Columna para la imagen */}
         <View style={styles.contentColumnOne}>
           <Image
-            source={{ uri: item.styles.miniatureImage }}
+            source={item.styles.miniatureImage ? { uri: item.styles.miniatureImage } : undefined}
             style={styles.eventImage}
           />
         </View>

@@ -106,7 +106,7 @@ export default function RenderHighlights() {
         router.push(`/eventosbefore/HighlightDetail?id=${item._id}`);
       }}
     >
-      <Image source={{ uri: item.imageUrl }} style={styles.image} />
+      <Image source={item.imageUrl ? { uri: item.imageUrl } : undefined} style={styles.image} />
       <View style={styles.textOverlay}>
         <Text style={styles.text}>{item.name}</Text>
         <Text style={styles.textEvent}>{item.eventId.name}</Text>

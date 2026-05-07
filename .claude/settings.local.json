@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"READ_MEDIA\")",
+      "Bash(xargs grep -lE \"READ_EXTERNAL_STORAGE|WRITE_EXTERNAL_STORAGE|READ_MEDIA\")",
+      "Bash(npm ls *)"
+    ]
+  }
+}
