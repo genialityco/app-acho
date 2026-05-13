@@ -323,18 +323,18 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-      {/* <ImagePromoModal
+      <ImagePromoModal
         visible={showPromo}
         onClose={() => setShowPromo(false)}
-        videoUri={
-          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Video%202026%20HOA%20LA.mp4?alt=media&token=d5085435-c728-4f7c-9ca3-99b527dafa37"
-        }
+        // videoUri={
+        //   "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Video%202026%20HOA%20LA.mp4?alt=media&token=d5085435-c728-4f7c-9ca3-99b527dafa37"
+        // }
         ctaUrl={"https://esmosummit2026.acho.com.co/registro/"}
         showButton={false}
         imageOnPressUrl={
-          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Y1774039328985-Security_and_transportation_guide_-_ESMO_2026.pdf?alt=media&token=c982f10f-733a-4097-b099-ab9c9dc46d2f"
+          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/PHOTO-2026-05-12-15-37-41%20(1).jpg.jpeg?alt=media&token=119c74a2-bc91-4e30-a546-defcace2fd62"
         }
-      /> */}
+      />
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );

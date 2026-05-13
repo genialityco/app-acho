@@ -21,12 +21,20 @@ type Props = {
   showButton?: boolean; // Mostrar botón CTA (default: false)
 };
 
-export function ImagePromoModal({ visible, onClose, imageUri, videoUri, imageOnPressUrl, ctaUrl, showButton = false }: Props) {
+export function ImagePromoModal({
+  visible,
+  onClose,
+  imageUri,
+  videoUri,
+  imageOnPressUrl,
+  ctaUrl,
+  showButton = false,
+}: Props) {
   const { width, height } = useWindowDimensions();
 
   // Tamaños responsivos - aumentamos altura para acomodar controles del video
   const cardWidth = Math.min(width - 32, 420); // 16px padding por lado
-  const mediaHeight = Math.min(height * 0.60, 450); // 60% alto pantalla, máx 450
+  const mediaHeight = Math.min(height * 0.6, 450); // 60% alto pantalla, máx 450
   const mediaWidth = cardWidth - 24; // por padding interno del card
 
   const openMediaUrl = async () => {
@@ -88,7 +96,9 @@ export function ImagePromoModal({ visible, onClose, imageUri, videoUri, imageOnP
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.card, { width: cardWidth, maxHeight: height * 0.85 }]}>
+        <View
+          style={[styles.card, { width: cardWidth, maxHeight: height * 0.85 }]}
+        >
           {/* X */}
           <Pressable style={styles.closeBtn} onPress={onClose} hitSlop={12}>
             <Text style={styles.closeText}>✕</Text>
