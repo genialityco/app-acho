@@ -77,8 +77,8 @@
       "@react-native-firebase/app",
       "expo-router",
       "react-native-video",
-      "expo-notifications"
-     
+      "expo-notifications",
+      "./plugins/withRemoveMediaPermissions"
     ],
     "experiments": {
       "typedRoutes": true
