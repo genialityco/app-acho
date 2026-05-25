@@ -15,6 +15,7 @@ import LinkifyText from "@/app/utils/LinkifyText";
 import { ImagePromoModal } from "@/components/ImagePromoModal";
 import { db, ref, onValue } from "@/services/firebaseConfig";
 import { useOrganization } from "@/context/OrganizationContext";
+import { fetchPromoModalConfig, PromoConfig } from "@/services/api/promoModalService";
 import { Survey, searchSurveys } from "@/services/api/surveyService";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -29,8 +30,10 @@ import { Linking } from "react-native";
 
 const { width } = Dimensions.get("window");
 
+
 export default function ProtectedLayout() {
   const [showPromo, setShowPromo] = useState(true);
+  const [promoConfig, setPromoConfig] = useState<PromoConfig | null>(null);
   const { isLoggedIn, isLoading, userId } = useAuth();
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -250,13 +253,22 @@ export default function ProtectedLayout() {
 
   useEffect(() => {
     const drawerStatusRef = ref(db, "drawer-status-acho");
-
     const unsubscribe = onValue(drawerStatusRef, (snapshot) => {
-      const isDrawerVisible = snapshot.val();
-      setDrawerVisible(isDrawerVisible);
+      setDrawerVisible(snapshot.val());
     });
-
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadPromoConfig = async () => {
+      try {
+        const response = await fetchPromoModalConfig();
+        if (response.data) setPromoConfig(response.data);
+      } catch (error) {
+        console.error("Error al cargar configuración del modal promo:", error);
+      }
+    };
+    loadPromoConfig();
   }, []);
 
   const handleCloseNotification = () => {
@@ -323,18 +335,21 @@ export default function ProtectedLayout() {
           </View>
         </View>
       </Modal>
-      <ImagePromoModal
-        visible={showPromo}
-        onClose={() => setShowPromo(false)}
-        // videoUri={
-        //   "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/Video%202026%20HOA%20LA.mp4?alt=media&token=d5085435-c728-4f7c-9ca3-99b527dafa37"
-        // }
-        ctaUrl={"https://esmosummit2026.acho.com.co/registro/"}
-        showButton={false}
-        imageOnPressUrl={
-          "https://firebasestorage.googleapis.com/v0/b/global-auth-49737.appspot.com/o/PHOTO-2026-05-12-15-37-41%20(1).jpg.jpeg?alt=media&token=119c74a2-bc91-4e30-a546-defcace2fd62"
-        }
-      />
+      {promoConfig && (
+        <ImagePromoModal
+          visible={showPromo && promoConfig.isActive}
+          onClose={() => setShowPromo(false)}
+          imageUri={
+            promoConfig.mediaType === "image" ? promoConfig.imageUri : undefined
+          }
+          videoUri={
+            promoConfig.mediaType === "video" ? promoConfig.videoUri : undefined
+          }
+          ctaUrl={promoConfig.ctaUrl}
+          showButton={promoConfig.showButton}
+          imageOnPressUrl={promoConfig.imageOnPressUrl || promoConfig.imageUri}
+        />
+      )}
       <Stack screenOptions={{ headerShown: false }} />
     </View>
   );
