@@ -102,6 +102,7 @@ export default function ProtectedLayout() {
   };
 
   const checkForUpdates = async () => {
+    if (!Updates.isEnabled) return;
     try {
       const update = await Updates.checkForUpdateAsync();
       if (update.isAvailable) {
@@ -155,18 +156,24 @@ export default function ProtectedLayout() {
         storeUrl = data.results[0]?.trackViewUrl;
       } else if (Device.osName === "Android") {
         storeUrl = `https://play.google.com/store/apps/details?id=${Application.applicationId}`;
-        latestVersion = "1.0.8";
+        latestVersion = "1.0.11";
       }
 
       // Obtenemos la versión actual desde OTA o la versión nativa
       let currentVersion =
         Updates.runtimeVersion ||
         Application.nativeApplicationVersion ||
-        "0.0.0";
+        "";
 
       // Si `Updates.runtimeVersion` es un hash, usamos `Application.nativeApplicationVersion`
       if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
-        currentVersion = Application.nativeApplicationVersion || "0.0.0";
+        currentVersion = Application.nativeApplicationVersion || "";
+      }
+
+      // Si no se pudo determinar la versión, no mostrar alerta para evitar falsos positivos
+      if (!currentVersion || !/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+        console.warn("⚠️ No se pudo determinar la versión instalada, omitiendo verificación de tienda.");
+        return;
       }
 
       console.log(
