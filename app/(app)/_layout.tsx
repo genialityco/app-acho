@@ -142,6 +142,7 @@ export default function ProtectedLayout() {
     return 0;
   };
 
+<<<<<<< HEAD
   const checkStoreVersion = async () => {
     try {
       let storeUrl = "";
@@ -192,11 +193,60 @@ export default function ProtectedLayout() {
       console.error("❌ Error verificando la versión en la tienda:", error);
     }
   };
+=======
+  // NOTA: chequeo de versión en tienda DESACTIVADO temporalmente.
+  // Reactivar cuando se publique la versión 2.0.0 (o un major nuevo) en App Store
+  // para forzar la actualización a esa versión mayor.
+  // const checkStoreVersion = async () => {
+  //   try {
+  //     let storeUrl = "";
+  //     let latestVersion = "0.0.0";
+  //
+  //     if (Device.osName === "iOS") {
+  //       const response = await fetch(
+  //         `https://itunes.apple.com/lookup?bundleId=${Application.applicationId}`,
+  //       );
+  //       const data = await response.json();
+  //       latestVersion = cleanIOSVersion(data.results[0]?.version ?? "0.0.0");
+  //       storeUrl = data.results[0]?.trackViewUrl;
+  //     } else if (Device.osName === "Android") {
+  //       storeUrl = `https://play.google.com/store/apps/details?id=${Application.applicationId}`;
+  //       latestVersion = "1.0.8";
+  //     }
+  //
+  //     // Obtenemos la versión actual desde OTA o la versión nativa
+  //     let currentVersion =
+  //       Updates.runtimeVersion ||
+  //       Application.nativeApplicationVersion ||
+  //       "0.0.0";
+  //
+  //     // Si `Updates.runtimeVersion` es un hash, usamos `Application.nativeApplicationVersion`
+  //     if (!/^\d+\.\d+\.\d+$/.test(currentVersion)) {
+  //       currentVersion = Application.nativeApplicationVersion || "0.0.0";
+  //     }
+  //
+  //     console.log(
+  //       `📢 Versión instalada: ${currentVersion}, Versión en la tienda: ${latestVersion}`,
+  //     );
+  //
+  //     // Comparar versiones numéricamente
+  //     if (compareVersions(currentVersion, latestVersion) < 0) {
+  //       Alert.alert(
+  //         "Nueva versión disponible",
+  //         "Debes actualizar la aplicación para continuar.",
+  //         [{ text: "Actualizar", onPress: () => Linking.openURL(storeUrl) }],
+  //       );
+  //     }
+  //   } catch (error) {
+  //     console.error("❌ Error verificando la versión en la tienda:", error);
+  //   }
+  // };
+>>>>>>> c6dfcddea0802b6b37dcb121e6709cf0a604f7d6
 
   useEffect(() => {
     const verifyAppVersion = async () => {
       await checkForUpdates();
-      await checkStoreVersion();
+      // await checkStoreVersion(); // Desactivado: ver nota arriba
     };
 
     verifyAppVersion();

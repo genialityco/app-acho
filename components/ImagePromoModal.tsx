@@ -79,7 +79,7 @@ export function ImagePromoModal({
         </style>
       </head>
       <body>
-        <video controls preload="metadata" style="width: 100%; height: 100%;">
+        <video controls playsinline webkit-playsinline preload="metadata" style="width: 100%; height: 100%;">
           <source src="${videoUri}" type="video/mp4" />
           Tu navegador no soporta videos HTML5.
         </video>
@@ -119,15 +119,19 @@ export function ImagePromoModal({
             >
               <WebView
                 source={{ html: videoHtml }}
-                style={{ flex: 1, width: "100%", height: "100%" }}
+                style={{ flex: 1, width: "100%", height: "100%", backgroundColor: "#000" }}
                 scrollEnabled={false}
                 bounces={false}
                 overScrollMode="never"
                 allowsFullscreenVideo={true}
+                allowsInlineMediaPlayback={true}
+                mediaPlaybackRequiresUserAction={true}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
                 scalesPageToFit={false}
                 nestedScrollEnabled={false}
+                originWhitelist={["*"]}
+                mixedContentMode="always"
               />
             </View>
           ) : (
