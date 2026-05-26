@@ -30,8 +30,8 @@ import { Animated, PanResponder, TouchableOpacity, View, StyleSheet, Image } fro
           }
         },
         onPanResponderRelease: () => {
-          lastTranslateX.current += translateX._value;
-          lastTranslateY.current += translateY._value;
+          lastTranslateX.current += (translateX as any)._value;
+          lastTranslateY.current += (translateY as any)._value;
           translateX.setOffset(0);
           translateY.setOffset(0);
           translateX.setValue(0);
@@ -57,7 +57,7 @@ import { Animated, PanResponder, TouchableOpacity, View, StyleSheet, Image } fro
           }
         },
         onPanResponderRelease: () => {
-          lastScale.current = scale._value;
+          lastScale.current = (scale as any)._value;
           scale.setOffset(0);
           scale.setValue(lastScale.current);
   

@@ -223,8 +223,8 @@ export default function MenuScreen() {
     }
   };
 
-  const generateQrUrl = () => {
-    if (!user?.properties?.idNumber) return null;
+  const generateQrUrl = (): string | undefined => {
+    if (!user?.properties?.idNumber) return undefined;
     return `https://api.qrserver.com/v1/create-qr-code/?data=${user.properties.idNumber}&size=200x200`;
   };
 

@@ -82,13 +82,15 @@ export const searchHighlights = async (filters: any): Promise<SearchData<Highlig
     throw error;
   }
 };
-export const eventHasHighlights = async (eventId: string[]): Promise<any> => {
+export const eventHasHighlights = async (
+  events: { eventId: string }[]
+): Promise<any> => {
   try {
-    const response = await api.post(`/highlights/event/exists`, {"eventId": eventId});
-    
+    const response = await api.post(`/highlights/event/exists`, { eventId: events });
+
     return response.data as any;
   } catch (error) {
-    console.error(`Error checking highlights for event ID ${eventId}:`, error);
+    console.error(`Error checking highlights for events:`, error);
     throw error;
   }
 }

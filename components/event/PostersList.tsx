@@ -104,7 +104,7 @@ export default function PostersList() {
       key={poster._id}
       onPress={() =>
         router.push(
-          `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}`
+          `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}` as any
         )
       }
     >
@@ -146,7 +146,7 @@ export default function PostersList() {
           size={15}
           onPress={() =>
             router.push(
-              `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}`
+              `/${tab}/components/posterdetail?posterId=${poster._id}&eventId=${eventId}&hasAlreadyVoted=${hasAlreadyVoted}&isMemberActive=${isMemberActive}` as any
             )
           }
         />

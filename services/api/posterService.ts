@@ -9,6 +9,7 @@ export interface Poster {
   institution: string;
   authors: string[];
   votes: number;
+  voters: string[];
   urlPdf: string;
   eventId?: string;
   createdAt?: string;
@@ -27,11 +28,11 @@ export const fetchPosters = async (): Promise<Poster[]> => {
 };
 
 // Obtener un poster por ID
-export const fetchPosterById = async (id: string): Promise<Poster> => {
+export const fetchPosterById = async (id: string): Promise<{ data: Poster }> => {
   try {
     const response = await api.get(`/posters/${id}`);
     console.log("Respuesta de fetchPosterById:", response.data);
-    return response.data;
+    return response.data as { data: Poster };
   } catch (error) {
     console.error(`Error al obtener el poster con ID ${id}:`, error);
     throw error;

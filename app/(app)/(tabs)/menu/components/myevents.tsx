@@ -73,11 +73,11 @@ export default function MyEventsScreen() {
 
     if (eventDate < currentDate) {
       router.push(
-        `/(tabs)/eventosbefore/components/eventdetailb?eventId=${event._id}`
+        `/(tabs)/eventosbefore/components/eventdetailb?eventId=${event._id}` as any
       );
     } else {
       router.push(
-        `/(tabs)/(index)/components/eventdetail?eventId=${event._id}`
+        `/(tabs)/(index)/components/eventdetail?eventId=${event._id}` as any
       );
     }
   };

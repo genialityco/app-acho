@@ -39,7 +39,7 @@ export default function PosterDetail() {
       setPoster(response.data);
 
       // Verificar si el usuario ya ha votado
-      if (response.data.voters.includes(userId)) {
+      if (userId && response.data.voters.includes(userId)) {
         setHasVoted(true);
       }
     } catch (error) {

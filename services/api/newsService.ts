@@ -32,10 +32,10 @@ export const fetchNews = async (): Promise<News[]> => {
 }; 
 
 // Obtener una noticia por ID
-export const fetchNewsById = async (id: string): Promise<News> => {
+export const fetchNewsById = async (id: string): Promise<{ data: News }> => {
   try {
     const response = await api.get(`/news/${id}`);
-    return response.data as News;
+    return response.data as { data: News };
   } catch (error) {
     console.error(`Error al obtener la noticia con ID ${id}:`, error);
     throw error;

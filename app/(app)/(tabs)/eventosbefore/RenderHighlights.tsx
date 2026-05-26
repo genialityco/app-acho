@@ -11,7 +11,9 @@ import {
 import { Text } from "react-native-paper";
 import { router } from "expo-router";
 import { useOrganization } from "@/context/OrganizationContext";
-import { searchHighlights, Highlight } from "@/services/api/highlightService";
+import { searchHighlights, Highlight as BaseHighlight } from "@/services/api/highlightService";
+
+type Highlight = BaseHighlight & { transcriptionMatches?: string[] };
 
 export default function RenderHighlights() {
   const { organization } = useOrganization();
@@ -110,9 +112,9 @@ export default function RenderHighlights() {
       <View style={styles.textOverlay}>
         <Text style={styles.text}>{item.name}</Text>
         <Text style={styles.textEvent}>{item.eventId.name}</Text>
-        {item.transcriptionMatches?.length > 0 && (
+        {item.transcriptionMatches && item.transcriptionMatches.length > 0 && (
           <View style={styles.matchesContainer}>
-            {item.transcriptionMatches.map((time, index) => (
+            {item.transcriptionMatches.map((time: string, index: number) => (
               <TouchableOpacity
                 key={index}
                 onPress={() => {

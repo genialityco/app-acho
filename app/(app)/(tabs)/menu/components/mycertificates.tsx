@@ -18,7 +18,7 @@ interface Certificate {
   id: number;
   title: string;
   date: string;
-  eventId: string;
+  eventId: string | { _id: string };
 }
 
 export default function MyCertificatesScreen() {

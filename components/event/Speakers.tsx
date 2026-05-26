@@ -80,7 +80,7 @@ export default function Speakers() {
       <TouchableOpacity
         onPress={() =>
           router.push(
-            `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}`
+            `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}` as any
           )
         }
       >
@@ -97,7 +97,7 @@ export default function Speakers() {
             style={styles.iconButton}
             onPress={() =>
               router.push(
-                `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}`
+                `/${tab}/components/speakerdetail?speakerId=${item._id}&eventId=${eventId}` as any
               )
             }
           />
