@@ -3,7 +3,21 @@
     "allow": [
       "Bash(mkdir \"c:\\\\Users\\\\sebas\\\\Documents\\\\GitHub\\\\backend-gen-nest\\\\src\\\\promo-modal\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\sebas\\\\Documents\\\\GitHub\\\\backend-gen-nest\\\\src\" -Directory)",
-      "Bash(Select-Object Name)"
+      "Bash(Select-Object Name)",
+      "Bash(git log *)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(cat /tmp/expo-web.log 2>/dev/null | tail -50)",
+      "Read(//tmp/**)",
+      "Bash(timeout 180 bash -c 'until curl -sf http://localhost:8088 >/dev/null 2>&1; do sleep 2; done; echo READY')",
+      "Bash(find / -maxdepth 6 -iname \"*playwright*\" -type d 2>/dev/null | head -20; echo \"---npx cache---\"; ls ~/.npm/_npx 2>/dev/null | head -5)",
+      "Read(//d//**)",
+      "Read(//c/Users/pipe0/.npm/**)",
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /tmp/resp.html -w \"HTTP %{http_code}\\\\n\" http://localhost:8088/)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sebas\\Documents\\GitHub\\backend-gen-nest\\src"

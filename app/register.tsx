@@ -9,6 +9,7 @@ import {
   Modal,
   ImageBackground,
   KeyboardAvoidingView,
+  Linking,
 } from "react-native";
 import { ActivityIndicator, Button, TextInput, Checkbox } from "react-native-paper";
 import RNPickerSelect from "react-native-picker-select";
@@ -110,19 +111,28 @@ export default function RegisterScreen() {
       // Obtener email del formulario
       const email = formData["email"];
       
-      // Si existe el campo idNumber, usarlo como contraseña, si no usar el campo password
+      // Usar el campo password si existe; si no, usar idNumber como contraseña de respaldo
+      const passwordField = propertiesDefinition?.find((field) => field.fieldName === "password");
       const idNumberField = propertiesDefinition?.find((field) => field.fieldName === "idNumber");
-      const password = idNumberField ? formData["idNumber"] : formData["password"];
-      
+      const password = passwordField
+        ? formData["password"]
+        : idNumberField
+        ? formData["idNumber"]
+        : formData["password"];
+
       // Validar que email y password existan
       if (!email || email.trim() === "") {
         Alert.alert("Error", "El email es requerido para registrarse");
         setIsRegistering(false);
         return;
       }
-      
+
       if (!password || password.trim() === "") {
-        const fieldLabel = idNumberField ? idNumberField.label : "contraseña";
+        const fieldLabel = passwordField
+          ? passwordField.label
+          : idNumberField
+          ? idNumberField.label
+          : "contraseña";
         Alert.alert("Error", `${fieldLabel} es requerido para registrarse`);
         setIsRegistering(false);
         return;
@@ -175,6 +185,72 @@ export default function RegisterScreen() {
             .map((field) => {
               const isFieldRequired = field.required;
               const fieldError = fieldErrors[field.fieldName];
+
+              // Caso especial: checkbox de autorización de tratamiento de datos con enlace a la política
+              if (field.fieldName === "dataTreatmentConsent" && field.type === "checkbox") {
+                return (
+                  <View
+                    key={field.fieldName}
+                    style={[
+                      { flexDirection: "row", alignItems: "flex-start", marginBottom: 15 },
+                      fieldError && {
+                        borderWidth: 2,
+                        borderColor: "#ff3333",
+                        padding: 10,
+                        borderRadius: 8,
+                        backgroundColor: "#ffe6e6",
+                      },
+                    ]}
+                  >
+                    <Checkbox
+                      status={formData[field.fieldName] ? "checked" : "unchecked"}
+                      onPress={() =>
+                        handleInputChange(
+                          field.fieldName,
+                          formData[field.fieldName] ? "" : "true"
+                        )
+                      }
+                    />
+                    <View style={{ flex: 1, marginTop: 8 }}>
+                      <Text>
+                        {(() => {
+                          const consentText = field.label || "";
+                          const linkLabel = "AQUÍ";
+                          const markerIndex = consentText.indexOf(linkLabel);
+
+                          if (markerIndex === -1) {
+                            return consentText;
+                          }
+
+                          const before = consentText.slice(0, markerIndex);
+                          const after = consentText.slice(markerIndex + linkLabel.length);
+
+                          return (
+                            <>
+                              {before}
+                              <Text
+                                style={styles.link}
+                                onPress={() =>
+                                  Linking.openURL("https://acho.com.co/proteccion-de-datos/")
+                                }
+                              >
+                                {linkLabel}
+                              </Text>
+                              {after}
+                            </>
+                          );
+                        })()}
+                        {isFieldRequired && <Text style={styles.asterisk}> *</Text>}
+                      </Text>
+                      {fieldError && (
+                        <Text style={{ color: "#ff3333", fontSize: 12 }}>
+                          Debe aceptar la política de tratamiento de datos
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              }
 
               // Nuevo: Renderizar campo tipo checkbox
               if (field.type === "checkbox") {
@@ -471,6 +547,10 @@ const styles = StyleSheet.create({
   },
   asterisk: {
     color: "red",
+  },
+  link: {
+    color: "#007bff",
+    textDecorationLine: "underline",
   },
 });
 
