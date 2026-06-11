@@ -9,6 +9,7 @@ import {
   Modal,
   ImageBackground,
   KeyboardAvoidingView,
+  ScrollView,
   Linking,
 } from "react-native";
 import { ActivityIndicator, Button, TextInput, Checkbox } from "react-native-paper";
@@ -177,6 +178,11 @@ export default function RegisterScreen() {
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
         <View style={styles.card}>
           <Text style={styles.headerText}>Crear una Cuenta</Text>
 
@@ -202,7 +208,7 @@ export default function RegisterScreen() {
                       },
                     ]}
                   >
-                    <Checkbox
+                    <Checkbox.Android
                       status={formData[field.fieldName] ? "checked" : "unchecked"}
                       onPress={() =>
                         handleInputChange(
@@ -268,7 +274,7 @@ export default function RegisterScreen() {
                       }
                     ]}
                   >
-                    <Checkbox
+                    <Checkbox.Android
                       status={formData[field.fieldName] ? "checked" : "unchecked"}
                       onPress={() =>
                         handleInputChange(
@@ -472,6 +478,7 @@ export default function RegisterScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </ImageBackground>
   );
@@ -489,8 +496,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
+    padding: 20,
   },
   card: {
     backgroundColor: "rgba(255, 255, 255, 0.9)",
