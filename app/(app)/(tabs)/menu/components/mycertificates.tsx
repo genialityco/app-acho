@@ -6,19 +6,21 @@ import {
   Linking,
   TouchableOpacity,
 } from "react-native";
-import { Card, Text, Button, ActivityIndicator } from "react-native-paper";
+import { Card, Text, Button, ActivityIndicator, Menu } from "react-native-paper";
 import { WebView } from "react-native-webview";
 import { useAuth } from "@/context/AuthContext"; 
 import { searchAttendees } from "@/services/api/attendeeService";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import Analytics from "@/services/analytics";
+import { EVENT_TYPES, getEventTypeLabel } from "@/constants/eventTypes";
 
 interface Certificate {
   id: number;
   title: string;
   date: string;
   eventId: string | { _id: string };
+  type: string | null;
 }
 
 export default function MyCertificatesScreen() {
@@ -27,6 +29,9 @@ export default function MyCertificatesScreen() {
   const [selectedCertificate, setSelectedCertificate] =
     useState<Certificate | null>(null);
   const [loading, setLoading] = useState(true);
+  // "" = todos los tipos
+  const [selectedType, setSelectedType] = useState<string>("");
+  const [typeMenuVisible, setTypeMenuVisible] = useState(false);
 
   // Trackear visualización de Mis Certificados
   useFocusEffect(
@@ -55,6 +60,7 @@ export default function MyCertificatesScreen() {
             title: `Certificado del Evento: ${attendee.eventId.name}`,
             date: new Date(attendee.createdAt).toLocaleDateString(),
             eventId: attendee.eventId,
+            type: attendee.eventId?.type ?? null,
           })
         );
         setCertificates(userCertificates);
@@ -64,6 +70,15 @@ export default function MyCertificatesScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filteredCertificates = selectedType
+    ? certificates.filter((certificate) => certificate.type === selectedType)
+    : certificates;
+
+  const selectType = (type: string) => {
+    setSelectedType(type);
+    setTypeMenuVisible(false);
   };
 
   const handleViewOrDownload = (certificate: Certificate) => {
@@ -117,9 +132,46 @@ export default function MyCertificatesScreen() {
         </View>
       ) : (
         // Mostrar lista de certificados
-        <ScrollView contentContainerStyle={styles.scrollViewContent}>
-          {certificates.length > 0 ? (
-            certificates.map((certificate: Certificate) => (
+        <View style={styles.listContainer}>
+          {/* Filtro por tipo de evento */}
+          <View style={styles.filterContainer}>
+            <Text style={styles.filterLabel}>Tipo de eventos:</Text>
+            <Menu
+              visible={typeMenuVisible}
+              onDismiss={() => setTypeMenuVisible(false)}
+              anchor={
+                <Button
+                  mode="outlined"
+                  icon="menu-down"
+                  contentStyle={styles.filterButtonContent}
+                  style={styles.filterButton}
+                  labelStyle={styles.filterButtonLabel}
+                  onPress={() => setTypeMenuVisible(true)}
+                >
+                  {selectedType ? getEventTypeLabel(selectedType) : "Todos"}
+                </Button>
+              }
+              anchorPosition="bottom"
+            >
+              <Menu.Item
+                title="Todos"
+                titleStyle={selectedType === "" ? styles.menuItemSelected : undefined}
+                onPress={() => selectType("")}
+              />
+              {EVENT_TYPES.map((type) => (
+                <Menu.Item
+                  key={type}
+                  title={getEventTypeLabel(type)}
+                  titleStyle={selectedType === type ? styles.menuItemSelected : undefined}
+                  onPress={() => selectType(type)}
+                />
+              ))}
+            </Menu>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.scrollViewContent}>
+          {filteredCertificates.length > 0 ? (
+            filteredCertificates.map((certificate: Certificate) => (
               <Card key={certificate.id} style={styles.certificateCard}>
                 <View style={styles.row}>
                   {/* Columna izquierda: Icono y fecha */}
@@ -138,6 +190,11 @@ export default function MyCertificatesScreen() {
                     <Text style={styles.certificateTitle}>
                       {certificate.title}
                     </Text>
+                    {!!certificate.type && (
+                      <Text style={styles.certificateType}>
+                        {getEventTypeLabel(certificate.type)}
+                      </Text>
+                    )}
                     <Button
                       mode="contained"
                       onPress={() => handleViewOrDownload(certificate)}
@@ -151,10 +208,13 @@ export default function MyCertificatesScreen() {
             ))
           ) : (
             <Text style={styles.noCertificatesText}>
-              No hay certificados disponibles.
+              {selectedType
+                ? `No hay certificados de tipo ${getEventTypeLabel(selectedType)}.`
+                : "No hay certificados disponibles."}
             </Text>
           )}
-        </ScrollView>
+          </ScrollView>
+        </View>
       )}
     </View>
   );
@@ -163,6 +223,35 @@ export default function MyCertificatesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  filterContainer: {
+    paddingTop: 16,
+    paddingHorizontal: 16,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  filterButton: {
+    alignSelf: "flex-start",
+    borderColor: "#00AEEF",
+    borderRadius: 8,
+  },
+  filterButtonContent: {
+    flexDirection: "row-reverse",
+  },
+  filterButtonLabel: {
+    color: "#00AEEF",
+    fontWeight: "600",
+  },
+  menuItemSelected: {
+    color: "#00AEEF",
+    fontWeight: "700",
   },
   scrollViewContent: {
     padding: 16,
@@ -202,6 +291,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#333",
+    marginBottom: 4,
+  },
+  certificateType: {
+    fontSize: 13,
+    color: "#00AEEF",
+    fontWeight: "600",
     marginBottom: 8,
   },
   viewButton: {
