@@ -11,6 +11,7 @@ import {
 import { useRoute, RouteProp } from "@react-navigation/native";
 import { WebView } from "react-native-webview";
 import { fetchHighlightById, Highlight } from "@/services/api/highlightService";
+import { buildVideoUrlAtTime } from "@/utils/video";
 
 type RouteParams = {
   params: {
@@ -74,9 +75,10 @@ export default function HighlightDetail() {
     );
   }
 
-  const videoUrl = time
-    ? `${highlight.vimeoUrl}?autoplay=1#t=${time.replace(":", "m").replace(":", "s")}`
-    : highlight.vimeoUrl + "?autoplay=1";
+  const videoUrl = buildVideoUrlAtTime(
+    highlight.vimeoUrl,
+    time !== undefined ? Number(time) : undefined
+  );
 
   return (
     <View style={styles.container}>

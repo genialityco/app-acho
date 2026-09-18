@@ -12,8 +12,10 @@ import { Text } from "react-native-paper";
 import { router } from "expo-router";
 import { useOrganization } from "@/context/OrganizationContext";
 import { searchHighlights, Highlight as BaseHighlight } from "@/services/api/highlightService";
+import { parseTimestampToSeconds, formatSecondsLabel } from "@/utils/video";
 
-type Highlight = BaseHighlight & { transcriptionMatches?: string[] };
+type TranscriptionMatch = { time: number; label: string };
+type Highlight = BaseHighlight & { transcriptionMatches?: TranscriptionMatch[] };
 
 export default function RenderHighlights() {
   const { organization } = useOrganization();
@@ -53,18 +55,6 @@ export default function RenderHighlights() {
     }
   };
 
-  const formatTimeForVimeo = (time: string) => {
-    const [hours, minutes, seconds] = time.split(":");
-    const secondsWithoutMs = Math.floor(parseFloat(seconds));
-    if (hours === "00") {
-      return `${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
-    }
-    return `${parseInt(hours, 10)}h${parseInt(
-      minutes,
-      10
-    )}m${secondsWithoutMs}s`;
-  };
-
   const handleSearch = (text: string) => {
     setSearchText(text);
 
@@ -73,7 +63,7 @@ export default function RenderHighlights() {
     } else {
       const filtered = highlights
         .map((highlight) => {
-          let matches: string[] = [];
+          let matches: TranscriptionMatch[] = [];
           if (highlight.transcription) {
             const lines = highlight.transcription.split("\n");
             for (let i = 0; i < lines.length; i++) {
@@ -82,7 +72,8 @@ export default function RenderHighlights() {
                   /(\d{2}:\d{2}:\d{2}\.\d{3})/
                 );
                 if (timeMatch) {
-                  matches.push(formatTimeForVimeo(timeMatch[1]));
+                  const seconds = parseTimestampToSeconds(timeMatch[1]);
+                  matches.push({ time: seconds, label: formatSecondsLabel(seconds) });
                 }
               }
             }
@@ -114,17 +105,17 @@ export default function RenderHighlights() {
         <Text style={styles.textEvent}>{item.eventId.name}</Text>
         {item.transcriptionMatches && item.transcriptionMatches.length > 0 && (
           <View style={styles.matchesContainer}>
-            {item.transcriptionMatches.map((time: string, index: number) => (
+            {item.transcriptionMatches.map((match: TranscriptionMatch, index: number) => (
               <TouchableOpacity
                 key={index}
                 onPress={() => {
                   router.push(
-                    `/eventosbefore/HighlightDetail?id=${item._id}&time=${time}`
+                    `/eventosbefore/HighlightDetail?id=${item._id}&time=${match.time}`
                   );
                 }}
               >
                 <Text key={index} style={styles.matchText}>
-                  {`Coincidencia en ${time}`}
+                  {`Coincidencia en ${match.label}`}
                 </Text>
               </TouchableOpacity>
             ))}

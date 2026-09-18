@@ -13,6 +13,7 @@ import { Text } from "react-native-paper";
 import { router, useLocalSearchParams } from "expo-router";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import { searchHighlights } from "@/services/api/highlightService";
+import { parseTimestampToSeconds, formatSecondsLabel } from "@/utils/video";
 
 export interface Highlight {
   _id: string;
@@ -24,7 +25,7 @@ export interface Highlight {
   transcription: string;
   createdAt?: string;
   updatedAt?: string;
-  transcriptionMatches?: { time: string; phrase: string }[];
+  transcriptionMatches?: { time: number; label: string; phrase: string }[];
 }
 
 type RouteParams = {
@@ -116,15 +117,6 @@ export default function Highlights() {
     }
   };
 
-  const formatTimeForVimeo = (time: string) => {
-    const [hours, minutes, seconds] = time.split(":");
-    const secondsWithoutMs = Math.floor(parseFloat(seconds));
-    if (hours === "00") {
-      return `${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
-    }
-    return `${parseInt(hours, 10)}h${parseInt(minutes, 10)}m${secondsWithoutMs}s`;
-  };
-
   const highlightText = (text: string, query: string) => {
     if (!query) return text;
     const regex = new RegExp(`(${query})`, "gi");
@@ -153,15 +145,17 @@ export default function Highlights() {
       const timeoutId = setTimeout(() => {
         const filtered = highlights
           .map((highlight) => {
-            let matches: { time: string; phrase: string }[] = [];
+            let matches: { time: number; label: string; phrase: string }[] = [];
             if (highlight.transcription) {
               const lines = highlight.transcription.split("\n");
               for (let i = 0; i < lines.length; i++) {
                 if (lines[i].toLowerCase().includes(text.toLowerCase())) {
                   const timeMatch = lines[i - 1]?.match(/(\d{2}:\d{2}:\d{2}\.\d{3})/);
                   if (timeMatch) {
+                    const seconds = parseTimestampToSeconds(timeMatch[1]);
                     matches.push({
-                      time: formatTimeForVimeo(timeMatch[1]),
+                      time: seconds,
+                      label: formatSecondsLabel(seconds),
                       phrase: lines[i],
                     });
                   }
@@ -235,7 +229,7 @@ export default function Highlights() {
                   }}
                 >
                   <Text style={styles.matchText}>
-                    {`[${match.time}] `}
+                    {`[${match.label}] `}
                     {highlightText(match.phrase, searchText)}
                   </Text>
                 </TouchableOpacity>
