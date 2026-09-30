@@ -19,6 +19,7 @@ import LinkifyText from "@/app/utils/LinkifyText";
 import dayjs from "dayjs";
 import "dayjs/locale/es";
 import { useRouter } from "expo-router";
+import { useOpenAppLink } from "@/utils/appLinks";
 import Analytics from "@/services/analytics";
 
 dayjs.locale("es");
@@ -44,6 +45,7 @@ function HomeScreen() {
   const { notifications, unreadCount, markAsRead, refreshNotifications } =
     useNotifications();
   const router = useRouter();
+  const openAppLink = useOpenAppLink();
 
   const fetchNews = async (pageNum: number, reset: boolean = false) => {
     if (pageNum > 1 && !hasMore) return;
@@ -176,7 +178,10 @@ function HomeScreen() {
   const renderNewsCard = (item: News) => (
     <TouchableOpacity
       key={item._id}
-      onPress={() => router.push(`/home/components/novelty?newId=${item._id}`)}
+      onPress={async () => {
+        if (await openAppLink(item.redirectUrl)) return;
+        router.push(`/home/components/novelty?newId=${item._id}`);
+      }}
     >
       <Card style={styles.card}>
         {!!item.featuredImage && (

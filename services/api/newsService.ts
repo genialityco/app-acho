@@ -9,6 +9,8 @@ export interface News {
   organizationId: string;
   eventId?: string;
   featuredImage?: string;
+  // Enlace que se abre al tocar la tarjeta en el listado (vacío = detalle)
+  redirectUrl?: string | null;
   createdAt?: string;
   updatedAt?: string;
   isPublic?: boolean;

@@ -19,6 +19,7 @@ import {
 } from "@/services/api/attendeeService";
 import { searchMembers } from "@/services/api/memberService";
 import { useAuth } from "@/context/AuthContext";
+import { isAppLink, useOpenAppLink } from "@/utils/appLinks";
 
 /**
  * Normaliza URLs para evitar problemas típicos en iOS/WebView
@@ -174,6 +175,20 @@ function wrapHtml(bodyHtml: string) {
     ${bodyHtml || ""}
 
     <script>
+      // Enlaces achoapp:// (texto o imagen) se abren dentro de la app
+      document.addEventListener("click", function (event) {
+        var el = event.target;
+        while (el && el.tagName !== "A") el = el.parentElement;
+        var href = el && el.getAttribute("href");
+        if (!href || href.toLowerCase().indexOf("achoapp://") !== 0) return;
+        event.preventDefault();
+        if (window.ReactNativeWebView) {
+          window.ReactNativeWebView.postMessage(
+            JSON.stringify({ action: "openAppLink", url: href })
+          );
+        }
+      }, true);
+
       (function () {
         function initWrap(wrap) {
           var v = wrap.querySelector("video");
@@ -223,6 +238,7 @@ function NoveltyScreen() {
 
   const { newId } = useLocalSearchParams();
   const { userId } = useAuth();
+  const openAppLink = useOpenAppLink();
 
   const [attendedId, setAttendeeId] = useState("");
   const [isRegistered, setIsRegistered] = useState(false);
@@ -419,9 +435,25 @@ function NoveltyScreen() {
           // ✅ CLAVE iOS: permite reproducción sin tap cuando esté muted
           mediaPlaybackRequiresUserAction={false}
           mixedContentMode="always"
+          // Enlaces achoapp:// del contenido (texto o imagen) navegan dentro de la app
+          onShouldStartLoadWithRequest={(request) => {
+            if (isAppLink(request.url)) {
+              openAppLink(request.url);
+              return false;
+            }
+            return true;
+          }}
+          onOpenWindow={({ nativeEvent }) => {
+            if (isAppLink(nativeEvent.targetUrl)) openAppLink(nativeEvent.targetUrl);
+          }}
           onMessage={async (event) => {
             try {
               const message = JSON.parse(event.nativeEvent.data);
+
+              if (message.action === "openAppLink") {
+                await openAppLink(message.url);
+                return;
+              }
 
               if (message.action === "register") {
                 await createAttendee({
