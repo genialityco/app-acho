@@ -50,11 +50,27 @@ export default function MyCertificatesScreen() {
   const loadCertificates = async (userId: string) => {
     try {
       setLoading(true);
-      const filters = { userId, attended: true };
-      const attendees = await searchAttendees(filters);
+      const pageSize = 100;
+      const allAttendees: any[] = [];
+      let page = 1;
+      let totalPages = 1;
 
-      if (attendees?.data?.items?.length > 0) {
-        const userCertificates = attendees.data.items.map(
+      do {
+        const attendees = await searchAttendees({
+          userId,
+          attended: true,
+          page,
+          pageSize,
+        });
+        const pageItems = attendees?.data?.items ?? [];
+
+        allAttendees.push(...pageItems);
+        totalPages = Number(attendees?.data?.totalPages ?? page);
+        page += 1;
+      } while (page <= totalPages);
+
+      if (allAttendees.length > 0) {
+        const userCertificates = allAttendees.map(
           (attendee: any, index: number) => ({
             id: index + 1,
             title: `Certificado del Evento: ${attendee.eventId.name}`,
@@ -64,6 +80,8 @@ export default function MyCertificatesScreen() {
           })
         );
         setCertificates(userCertificates);
+      } else {
+        setCertificates([]);
       }
     } catch (error) {
       console.error("Error al cargar los certificados:", error);
