@@ -11,8 +11,22 @@ import { searchPosters, Poster } from "@/services/api/posterService";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import debounce from "lodash.debounce";
 import { useAuth } from "@/context/AuthContext";
+import { getGenPapersSections } from "@/services/api/genPapersService";
+import GenPapersList from "./GenPapersList";
 
+// Los eventos con posters en Gen. Papers usan esa plataforma; el resto, los posters de Mongo.
 export default function PostersList() {
+  const { tab, eventId } = useLocalSearchParams();
+  const sections = getGenPapersSections(eventId);
+  if (sections) {
+    return (
+      <GenPapersList eventId={String(eventId)} tab={String(tab)} sections={sections} />
+    );
+  }
+  return <MongoPostersList />;
+}
+
+function MongoPostersList() {
   const { tab, eventId, isMemberActive } = useLocalSearchParams();
   const [posters, setPosters] = useState<Poster[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
