@@ -13,6 +13,9 @@ import { searchMembers } from "@/services/api/memberService";
  *
  * Formatos soportados:
  *  - achoapp://evento/<eventId>     -> detalle del evento (próximo o anterior)
+ *  - achoapp://evento/<eventId>?seccion=<pestaña> -> abre además esa pestaña
+ *    (ver EVENT_TAB_ROUTES)
+ *  - achoapp://memoria/<highlightId> -> video de memorias
  *  - achoapp://noticia/<newsId>     -> detalle de una novedad
  *  - achoapp://seccion/<nombre>     -> una sección de la app (ver SECTION_ROUTES)
  *  - http(s)://...                  -> se abre fuera de la app
@@ -30,17 +33,30 @@ const SECTION_ROUTES: Record<string, string> = {
   soporte: "/(tabs)/menu/components/support",
 };
 
+// Pestañas del detalle del evento (clave = event.eventSections)
+const EVENT_TAB_ROUTES: Record<string, string> = {
+  agenda: "program",
+  speakers: "speakers",
+  documents: "documents",
+  ubication: "venue",
+  certificate: "certificates",
+  posters: "posterslist",
+};
+
 export const isAppLink = (url?: string | null): boolean =>
   typeof url === "string" && url.trim().toLowerCase().startsWith(APP_LINK_SCHEME);
 
 const parseAppLink = (url: string) => {
   const match = url
     .trim()
-    .match(/^achoapp:\/\/([^/?#]+)\/?([^?#]*)/i);
+    .match(/^achoapp:\/\/([^/?#]+)\/?([^?#]*)(?:\?([^#]*))?/i);
   if (!match) return null;
+  const query = match[3] || "";
+  const seccion = query.match(/(?:^|&)seccion=([^&]*)/i)?.[1];
   return {
     target: match[1].toLowerCase(),
     value: decodeURIComponent(match[2] || "").replace(/\/+$/, ""),
+    seccion: seccion ? decodeURIComponent(seccion).toLowerCase() : "",
   };
 };
 
@@ -49,7 +65,13 @@ export function useOpenAppLink() {
   const { organization } = useOrganization();
 
   const openEvent = useCallback(
-    async (eventId: string) => {
+    async (eventId: string, seccion = "") => {
+      // Las memorias viven en el stack de eventos anteriores
+      if (seccion === "memorias") {
+        router.push(`/eventosbefore/Memorias?eventId=${eventId}` as any);
+        return;
+      }
+
       let isPast = false;
       try {
         const response = await fetchEventById(eventId);
@@ -60,10 +82,17 @@ export function useOpenAppLink() {
         console.error("Error al obtener el evento del enlace:", error);
       }
 
+      const tabRoute = EVENT_TAB_ROUTES[seccion];
+
       if (isPast) {
         router.push(
           `/(tabs)/eventosbefore/components/eventdetailb?eventId=${eventId}` as any,
         );
+        if (tabRoute) {
+          router.push(
+            `/eventosbefore/components/${tabRoute}?eventId=${eventId}&tab=eventosbefore` as any,
+          );
+        }
         return;
       }
 
@@ -83,6 +112,11 @@ export function useOpenAppLink() {
       router.push(
         `/(tabs)/(index)/components/eventdetail?eventId=${eventId}&isMemberActive=${isMemberActive}&memberId=${memberId}` as any,
       );
+      if (tabRoute) {
+        router.push(
+          `/(index)/components/${tabRoute}?eventId=${eventId}&tab=(index)` as any,
+        );
+      }
     },
     [userId, organization?._id],
   );
@@ -106,7 +140,11 @@ export function useOpenAppLink() {
       switch (link.target) {
         case "evento":
           if (!link.value) return false;
-          await openEvent(link.value);
+          await openEvent(link.value, link.seccion);
+          return true;
+        case "memoria":
+          if (!link.value) return false;
+          router.push(`/eventosbefore/HighlightDetail?id=${link.value}` as any);
           return true;
         case "noticia":
           if (!link.value) return false;

@@ -5,19 +5,22 @@ import {
   Image,
   Pressable,
   StyleSheet,
-  Linking,
   Text,
   useWindowDimensions,
 } from "react-native";
 import { WebView } from "react-native-webview";
+
+import { useOpenAppLink } from "@/utils/appLinks";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   imageUri?: string; // URL pública de la imagen
   videoUri?: string; // URL pública del video
-  imageOnPressUrl: string; // URL que se abre al presionar la imagen/video
-  ctaUrl?: string; // URL que se abre al presionar el botón
+  // Enlaces configurables desde el CMS: https://... o achoapp://... (ver utils/appLinks.ts)
+  imageOnPressUrl?: string; // Enlace al presionar la imagen (vacío = sin acción)
+  ctaUrl?: string; // Enlace del botón
+  ctaText?: string; // Texto del botón (default: "Ir a la página")
   showButton?: boolean; // Mostrar botón CTA (default: false)
 };
 
@@ -28,8 +31,10 @@ export function ImagePromoModal({
   videoUri,
   imageOnPressUrl,
   ctaUrl,
+  ctaText,
   showButton = false,
 }: Props) {
+  const openAppLink = useOpenAppLink();
   const { width, height } = useWindowDimensions();
 
   // Tamaños responsivos - aumentamos altura para acomodar controles del video
@@ -37,17 +42,15 @@ export function ImagePromoModal({
   const mediaHeight = Math.min(height * 0.6, 450); // 60% alto pantalla, máx 450
   const mediaWidth = cardWidth - 24; // por padding interno del card
 
-  const openMediaUrl = async () => {
-    const can = await Linking.canOpenURL(imageOnPressUrl);
-    if (can) Linking.openURL(imageOnPressUrl);
-    else Linking.openURL(imageOnPressUrl);
-  };
-
-  const openCtaUrl = async () => {
-    if (!ctaUrl) return;
-    const can = await Linking.canOpenURL(ctaUrl);
-    if (can) Linking.openURL(ctaUrl);
-    else Linking.openURL(ctaUrl);
+  const openLink = async (url?: string) => {
+    if (!url || !url.trim()) return;
+    // Se cierra el modal antes de navegar para que la pantalla destino quede visible
+    onClose();
+    try {
+      await openAppLink(url);
+    } catch (error) {
+      console.error("Error al abrir el enlace del modal promo:", error);
+    }
   };
 
   const videoHtml = videoUri
@@ -135,7 +138,10 @@ export function ImagePromoModal({
               />
             </View>
           ) : (
-            <Pressable onPress={openMediaUrl}>
+            <Pressable
+              onPress={() => openLink(imageOnPressUrl)}
+              disabled={!imageOnPressUrl}
+            >
               <Image
                 source={{ uri: imageUri }}
                 style={{
@@ -154,9 +160,9 @@ export function ImagePromoModal({
           {showButton && (
             <Pressable
               style={[styles.ctaBtn, { width: mediaWidth }]}
-              onPress={openCtaUrl}
+              onPress={() => openLink(ctaUrl)}
             >
-              <Text style={styles.ctaText}>Ir a la página</Text>
+              <Text style={styles.ctaText}>{ctaText?.trim() || "Ir a la página"}</Text>
             </Pressable>
           )}
         </View>

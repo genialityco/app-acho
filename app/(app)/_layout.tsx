@@ -353,8 +353,9 @@ export default function ProtectedLayout() {
             promoConfig.mediaType === "video" ? promoConfig.videoUri : undefined
           }
           ctaUrl={promoConfig.ctaUrl}
+          ctaText={promoConfig.ctaText}
           showButton={promoConfig.showButton}
-          imageOnPressUrl={promoConfig.imageOnPressUrl || promoConfig.imageUri}
+          imageOnPressUrl={promoConfig.imageOnPressUrl}
         />
       )}
       <Stack screenOptions={{ headerShown: false }} />

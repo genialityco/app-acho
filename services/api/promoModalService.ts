@@ -6,6 +6,7 @@ export interface PromoConfig {
   imageUri: string;
   videoUri: string;
   ctaUrl: string;
+  ctaText?: string;
   showButton: boolean;
   imageOnPressUrl: string;
 }

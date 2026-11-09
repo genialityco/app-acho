@@ -1,5 +1,13 @@
 import api, { SearchData } from './api';
 
+/** Botón de inscripción configurable desde el CMS (detalle del evento). */
+export interface RegistrationButtonConfig {
+  enabled?: boolean;
+  text?: string;
+  action?: 'register' | 'link';
+  url?: string;
+}
+
 export interface Event {
   __v: number;
   _id: string;
@@ -15,6 +23,7 @@ export interface Event {
     ubication: boolean;
   };
   isExternalRegistration: boolean;
+  registrationButton?: RegistrationButtonConfig;
   location: {
     address: string;
     coordinates: any; 

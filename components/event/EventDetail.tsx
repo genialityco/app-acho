@@ -24,10 +24,14 @@ import {
   deleteAttendee,
   searchAttendees,
 } from "@/services/api/attendeeService";
-import { fetchEventById } from "@/services/api/eventService";
+import {
+  fetchEventById,
+  RegistrationButtonConfig,
+} from "@/services/api/eventService";
 import { useAuth } from "@/context/AuthContext";
 import dayjs from "dayjs";
 import LinkifyText from "@/app/utils/LinkifyText";
+import { useOpenAppLink } from "@/utils/appLinks";
 
 // --- Tipos ---
 
@@ -49,6 +53,7 @@ interface Event {
   };
   isExternalRegistration: boolean;
   externalRegistrationUrl: string;
+  registrationButton?: RegistrationButtonConfig;
 }
 
 // --- Constantes ---
@@ -94,6 +99,7 @@ export default function EventDetail({ tab }: { tab: string }) {
   const { eventId, isMemberActive, memberId } = useLocalSearchParams();
   const { userId } = useAuth();
   const { width } = useWindowDimensions();
+  const openAppLink = useOpenAppLink();
 
   const [showImageModal, setShowImageModal] = useState(false);
   const [showSectionsModal, setShowSectionsModal] = useState(false);
@@ -174,6 +180,21 @@ export default function EventDetail({ tab }: { tab: string }) {
     }
   };
 
+  // Botón configurado desde el CMS para abrir un enlace (externo o de la app)
+  const handleLinkButton = async () => {
+    const url = event?.registrationButton?.url;
+    setIsLoading(true);
+    try {
+      const handled = await openAppLink(url);
+      if (!handled) Alert.alert("Error", "No se pudo abrir el enlace.");
+    } catch (error) {
+      console.error("Error al abrir el enlace del botón:", error);
+      Alert.alert("Error", "Ocurrió un problema al intentar abrir el enlace.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleConfirmUnregister = async () => {
     setIsLoading(true);
     setShowUnregisterModal(false);
@@ -232,6 +253,15 @@ export default function EventDetail({ tab }: { tab: string }) {
       </View>
     );
   }
+
+  // --- Botón de inscripción (configurable desde el CMS) ---
+
+  const registrationButton = event.registrationButton;
+  const showRegistrationButton =
+    tab === "(index)" && registrationButton?.enabled !== false;
+  const isLinkButton =
+    registrationButton?.action === "link" && Boolean(registrationButton?.url?.trim());
+  const customButtonText = registrationButton?.text?.trim();
 
   // --- Cálculos de layout para secciones ---
 
@@ -295,8 +325,19 @@ export default function EventDetail({ tab }: { tab: string }) {
                 {event.name}
               </Text>
               <View style={styles.headerButtonWrap}>
-                {tab === "(index)" &&
-                  (isRegistered ? (
+                {showRegistrationButton &&
+                  (isLinkButton ? (
+                    <Button
+                      mode="contained"
+                      onPress={handleLinkButton}
+                      loading={isLoading}
+                      disabled={isLoading}
+                      style={styles.registerButton}
+                      labelStyle={{ color: "#3F5216", fontSize: 12 }}
+                    >
+                      {customButtonText || "Más información"}
+                    </Button>
+                  ) : isRegistered ? (
                     <Button
                       mode="contained"
                       onPress={() => setShowUnregisterModal(true)}
@@ -316,9 +357,10 @@ export default function EventDetail({ tab }: { tab: string }) {
                       style={styles.registerButton}
                       labelStyle={{ color: "#3F5216", fontSize: 12 }}
                     >
-                      {event.isExternalRegistration && isMemberActive === "false"
-                        ? "Pre inscribirme."
-                        : "Inscribirme"}
+                      {customButtonText ||
+                        (event.isExternalRegistration && isMemberActive === "false"
+                          ? "Pre inscribirme."
+                          : "Inscribirme")}
                     </Button>
                   ))}
               </View>
