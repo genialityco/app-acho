@@ -117,18 +117,6 @@ export const getSessionKey = (session: AgendaSubSession, index: number) =>
 export const formatTimeRange = (start: string, end: string) =>
   `${dayjs(start).format("HH:mm")} – ${dayjs(end).format("HH:mm")}`;
 
-export const getSessionTags = (session: AgendaSession): string[] => {
-  const moduleTitle =
-    typeof session.moduleId === "object" ? session.moduleId?.title : "";
-  return [
-    ...new Set(
-      [session.typeSession, session.room, moduleTitle]
-        .map((t) => String(t || "").trim())
-        .filter(Boolean),
-    ),
-  ];
-};
-
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const formatDayPill = (day: string) => {
@@ -200,8 +188,9 @@ export const useAgendaLayout = () => {
       cardWidth,
       compact: effective < 360,
       tablet: width >= 768,
-      // Tarjeta contraída: info a la izquierda y preview a la derecha
-      sideBySide: effective >= 330,
+      // En teléfonos estrechos la previsualización va debajo para que ambos
+      // títulos se lean completos; en pantallas amplias se mantienen dos columnas.
+      sideBySide: effective >= 430,
       // Subsesión expandida: título a la izquierda, horario a la derecha
       subRow: effective >= 540,
       subListMaxHeight: Math.round(Math.max(260, Math.min(height * 0.55, 560))),

@@ -20,7 +20,7 @@ export default function SessionPreview({ subSessions, onExpand }: Props) {
   return (
     <View style={styles.box}>
       <View style={styles.header}>
-        <Text numberOfLines={1} style={styles.heading}>
+        <Text style={styles.heading}>
           Subsesiones
         </Text>
         <Pressable
@@ -69,9 +69,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   heading: {
-    flexShrink: 1,
-    fontSize: 15,
-    lineHeight: 20,
+    flexShrink: 0,
+    fontSize: 14,
+    lineHeight: 19,
     fontWeight: "800",
     color: agendaColors.navy,
   },

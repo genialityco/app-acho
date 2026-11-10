@@ -13,7 +13,6 @@ import {
   SpeakerIndex,
   expandedTitleSize,
   formatTimeRange,
-  getSessionTags,
   isLikelyTruncated,
   resolveSpeakerNames,
   sortChronologically,
@@ -52,11 +51,19 @@ function SessionCard({
     () => sortChronologically(session.subSessions),
     [session.subSessions],
   );
-  const tags = useMemo(() => getSessionTags(session), [session]);
-
   const hasSubs = subSessions.length > 0;
   const time = formatTimeRange(session.startDateTime, session.endDateTime);
   const sideBySide = layout.sideBySide && hasSubs && !expanded;
+  const sessionInfo = useMemo(
+    () =>
+      [
+        session.room ? `Salón: ${session.room}` : "",
+        typeof session.moduleId === "object" && session.moduleId?.title
+          ? `Módulo: ${session.moduleId.title}`
+          : "",
+      ].filter(Boolean),
+    [session.moduleId, session.room],
+  );
 
   // Tipografía según dispositivo
   const collapsedSize = layout.compact ? 16 : layout.tablet ? 19 : 17;
@@ -89,8 +96,8 @@ function SessionCard({
   const a11yLabel = [
     session.title,
     time,
-    tags.join(", "),
     speakerNames.length ? `Speakers: ${speakerNames.join(", ")}` : "",
+    sessionInfo.join(", "),
     hasSubs ? `${subSessions.length} subsesiones` : "",
   ]
     .filter(Boolean)
@@ -133,42 +140,30 @@ function SessionCard({
             layout={motion.layout}
             style={[styles.main, sideBySide && styles.mainSide]}
           >
-            {(tags.length > 0 || showHeaderToggle) && (
+            {showHeaderToggle && (
               <View style={styles.topRow}>
-                <View style={styles.tags}>
-                  {tags.map((tag) => (
-                    <View key={tag} style={styles.tag}>
-                      <Text numberOfLines={1} style={styles.tagText}>
-                        {tag.toUpperCase()}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                {showHeaderToggle && (
-                  <Pressable
-                    onPress={(e) => {
-                      e?.stopPropagation?.();
-                      toggle();
-                    }}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    accessibilityLabel={expanded ? "Contraer" : "Ver detalle"}
-                    style={({ pressed }) => [
-                      expanded ? styles.collapseBtn : styles.chevronBtn,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <Ionicons
-                      name={expanded ? "chevron-up" : "chevron-down"}
-                      size={18}
-                      color={agendaColors.navy}
-                    />
-                    {expanded && !layout.compact && (
-                      <Text style={styles.collapseText}>Contraer</Text>
-                    )}
-                  </Pressable>
-                )}
+                <Pressable
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    toggle();
+                  }}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={expanded ? "Contraer" : "Ver detalle"}
+                  style={({ pressed }) => [
+                    expanded ? styles.collapseBtn : styles.chevronBtn,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <Ionicons
+                    name={expanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={agendaColors.navy}
+                  />
+                  {expanded && !layout.compact && (
+                    <Text style={styles.collapseText}>Contraer</Text>
+                  )}
+                </Pressable>
               </View>
             )}
 
@@ -199,6 +194,16 @@ function SessionCard({
             </View>
 
             <SpeakersList names={speakerNames} />
+
+            {sessionInfo.length > 0 && (
+              <View style={styles.infoList}>
+                {sessionInfo.map((info) => (
+                  <Text key={info} numberOfLines={2} style={styles.infoText}>
+                    {info}
+                  </Text>
+                ))}
+              </View>
+            )}
           </Animated.View>
 
           {!expanded && hasSubs && (
@@ -258,21 +263,6 @@ const styles = StyleSheet.create({
   main: { minWidth: 0, gap: 8 },
   mainSide: { flex: 1.08 },
   topRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
-  tags: { flex: 1, flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  tag: {
-    maxWidth: "100%",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    backgroundColor: agendaColors.chip,
-  },
-  tagText: {
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: "800",
-    letterSpacing: 0.4,
-    color: agendaColors.navy,
-  },
   chevronBtn: {
     width: 34,
     height: 34,
@@ -304,6 +294,12 @@ const styles = StyleSheet.create({
   timeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   time: { fontSize: 15, lineHeight: 20, color: agendaColors.text },
   timeExpanded: { fontWeight: "800" },
+  infoList: { gap: 2, marginTop: 1 },
+  infoText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: agendaColors.muted,
+  },
   previewSide: { flex: 1, flexDirection: "row", marginLeft: 12 },
   previewBelow: { marginTop: 12 },
   divider: {
