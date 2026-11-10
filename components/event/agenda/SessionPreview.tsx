@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: "700",
-    color: agendaColors.accent,
+    color: agendaColors.navy,
     textAlign: "right",
   },
 });

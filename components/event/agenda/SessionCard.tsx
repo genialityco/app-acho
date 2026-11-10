@@ -23,6 +23,7 @@ import { agendaColors } from "./theme";
 const CARD_PADDING = 16;
 const BAR_SPACE = 16; // barra de acento + separación
 const COLLAPSED_TITLE_LINES = 2;
+const CATEGORY_ROOMS = new Set(["hematologia", "oncologia"]);
 
 type Props = {
   session: AgendaSession;
@@ -57,7 +58,16 @@ function SessionCard({
   const sessionInfo = useMemo(
     () =>
       [
-        session.room ? `Salón: ${session.room}` : "",
+        session.room &&
+        !CATEGORY_ROOMS.has(
+          String(session.room)
+            .trim()
+            .toLocaleLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, ""),
+        )
+          ? `Salón: ${session.room}`
+          : "",
         typeof session.moduleId === "object" && session.moduleId?.title
           ? `Módulo: ${session.moduleId.title}`
           : "",
@@ -140,33 +150,6 @@ function SessionCard({
             layout={motion.layout}
             style={[styles.main, sideBySide && styles.mainSide]}
           >
-            {showHeaderToggle && (
-              <View style={styles.topRow}>
-                <Pressable
-                  onPress={(e) => {
-                    e?.stopPropagation?.();
-                    toggle();
-                  }}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={expanded ? "Contraer" : "Ver detalle"}
-                  style={({ pressed }) => [
-                    expanded ? styles.collapseBtn : styles.chevronBtn,
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Ionicons
-                    name={expanded ? "chevron-up" : "chevron-down"}
-                    size={18}
-                    color={agendaColors.navy}
-                  />
-                  {expanded && !layout.compact && (
-                    <Text style={styles.collapseText}>Contraer</Text>
-                  )}
-                </Pressable>
-              </View>
-            )}
-
             <Text
               numberOfLines={expanded ? undefined : COLLAPSED_TITLE_LINES}
               style={[
@@ -219,6 +202,32 @@ function SessionCard({
             </Animated.View>
           )}
         </Animated.View>
+
+        {showHeaderToggle && (
+          <Pressable
+            onPress={(e) => {
+              e?.stopPropagation?.();
+              toggle();
+            }}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={expanded ? "Contraer" : "Ver detalle"}
+            style={({ pressed }) => [
+              styles.headerAction,
+              expanded ? styles.collapseBtn : styles.chevronBtn,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons
+              name={expanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={agendaColors.navy}
+            />
+            {expanded && !layout.compact && (
+              <Text style={styles.collapseText}>Contraer</Text>
+            )}
+          </Pressable>
+        )}
       </Pressable>
 
       {expanded && hasSubs && (
@@ -249,7 +258,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   cardExpanded: { borderWidth: 1.5, borderColor: agendaColors.borderStrong },
-  header: { flexDirection: "row" },
+  header: { flexDirection: "row", alignItems: "flex-start" },
   bar: {
     width: 5,
     height: 46,
@@ -262,7 +271,7 @@ const styles = StyleSheet.create({
   bodyRow: { flexDirection: "row", alignItems: "stretch" },
   main: { minWidth: 0, gap: 8 },
   mainSide: { flex: 1.08 },
-  topRow: { flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  headerAction: { marginLeft: 12, flexShrink: 0 },
   chevronBtn: {
     width: 34,
     height: 34,
