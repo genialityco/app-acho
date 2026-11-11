@@ -436,15 +436,19 @@ function NoveltyScreen() {
           mediaPlaybackRequiresUserAction={false}
           mixedContentMode="always"
           // Enlaces achoapp:// del contenido (texto o imagen) navegan dentro de la app
+          // y los http(s) se abren en el navegador para no reemplazar la novedad
           onShouldStartLoadWithRequest={(request) => {
-            if (isAppLink(request.url)) {
+            const isExternal =
+              /^https?:\/\//i.test(request.url) && request.isTopFrame !== false;
+            if (isAppLink(request.url) || isExternal) {
               openAppLink(request.url);
               return false;
             }
             return true;
           }}
+          // Los enlaces con target="_blank" (los que pone el editor) llegan por aquí
           onOpenWindow={({ nativeEvent }) => {
-            if (isAppLink(nativeEvent.targetUrl)) openAppLink(nativeEvent.targetUrl);
+            openAppLink(nativeEvent.targetUrl);
           }}
           onMessage={async (event) => {
             try {
