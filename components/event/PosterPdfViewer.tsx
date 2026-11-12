@@ -87,7 +87,7 @@ export default function PosterPdfViewer({ urlPdf }: { urlPdf: string }) {
     <>
       <Button
         mode="contained-tonal"
-        compact
+        icon="fullscreen"
         onPress={() => setIsFullScreen(true)}
         style={styles.fullScreenButton}
       >
@@ -111,6 +111,7 @@ export default function PosterPdfViewer({ urlPdf }: { urlPdf: string }) {
 
       <Button
         mode="contained-tonal"
+        icon="download"
         onPress={handleDownload}
         loading={isDownloading}
         disabled={isDownloading}
@@ -175,7 +176,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   saveButton: {
-    flex: 1,
     marginTop: 10,
+    marginBottom: 20,
   },
 });
