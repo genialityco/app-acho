@@ -140,7 +140,8 @@ export default function GenPaperDetail({ section, paperId }: Props) {
     })
     .filter(Boolean);
   const votedThis = storedVote?.paperId === paper.id;
-  const votingOpen = event?.votingOpen === true;
+  const votingStatus = event?.votingStatus ?? "upcoming";
+  const votingOpen = votingStatus === "open";
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -160,7 +161,7 @@ export default function GenPaperDetail({ section, paperId }: Props) {
             <Chip icon="information" style={styles.votedChip}>
               Has votado por este póster
             </Chip>
-          ) : (
+          ) : votingStatus !== "upcoming" ? (
             <Button
               mode="contained"
               onPress={handleVote}
@@ -168,13 +169,13 @@ export default function GenPaperDetail({ section, paperId }: Props) {
               disabled={isVoteLoading || !votingOpen || !!storedVote}
               style={styles.voteButton}
             >
-              {!votingOpen
-                ? "La votación no está abierta"
+              {votingStatus === "closed"
+                ? "La votación ha cerrado"
                 : storedVote
                 ? `Ya votaste en ${label}`
                 : "Votar por este poster"}
             </Button>
-          )}
+          ) : null}
           {storedVote && !votedThis && storedVote.paperTitle ? (
             <Text style={styles.votedNote}>
               Tu voto en {label}: {storedVote.paperTitle}

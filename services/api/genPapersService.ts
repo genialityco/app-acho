@@ -28,9 +28,12 @@ export const getGenPapersSections = (
   return (id && GEN_PAPERS_EVENTS[id]) || null;
 };
 
+export type GenPapersVotingStatus = "upcoming" | "open" | "closed";
+
 export interface GenPapersEvent {
   name: string;
   votingOpen: boolean;
+  votingStatus: GenPapersVotingStatus;
 }
 
 export interface GenPaperField {
@@ -110,7 +113,19 @@ export const fetchGenPapersEvent = async (
 ): Promise<GenPapersEvent | null> => {
   const doc = await getDocument(`events/${slug}`);
   if (!doc) return null;
-  return { name: doc.name ?? "", votingOpen: doc.votingOpen === true };
+  const votingStatus = getVotingStatus(doc);
+  return { name: doc.name ?? "", votingOpen: votingStatus === "open", votingStatus };
+};
+
+// Además del flag votingOpen, la votación solo está abierta dentro de la ventana
+// votingOpensAt–votingClosesAt del evento (si están definidas).
+const getVotingStatus = (doc: Record<string, any>): GenPapersVotingStatus => {
+  const now = Date.now();
+  const closesAt = doc.votingClosesAt ? Date.parse(doc.votingClosesAt) : NaN;
+  if (!isNaN(closesAt) && now >= closesAt) return "closed";
+  const opensAt = doc.votingOpensAt ? Date.parse(doc.votingOpensAt) : NaN;
+  if (doc.votingOpen !== true || (!isNaN(opensAt) && now < opensAt)) return "upcoming";
+  return "open";
 };
 
 export const fetchGenPaperFields = async (slug: string): Promise<GenPaperField[]> => {
